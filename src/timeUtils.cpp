@@ -3,6 +3,8 @@
 int8_t newTimeMinutes = 0;
 int8_t newTimeHours = 12;
 
+DateTime startTime;
+
 void initRTC(RTC_DS3231* rtc) {
     if (! rtc->begin()) {
         Serial.println("Couldn't find RTC");
@@ -20,6 +22,12 @@ void printTempTime() {
     Serial.println(timeBuffer);
 }
 
+void printStartTime() {
+    char timeBuffer[6];
+    sprintf(timeBuffer, "%d:%02d", startTime.hour(), startTime.minute());
+    Serial.println(timeBuffer);
+}
+
 void printRTCTime(RTC_DS3231* rtc) {
     DateTime now = rtc->now();
     char timeBuffer[9];
@@ -31,6 +39,10 @@ void initSetTime(RTC_DS3231* rtc) {
     const DateTime now = rtc->now();
     newTimeMinutes = now.minute();
     newTimeHours = now.hour();
+}
+
+void initSetStartTime(RTC_DS3231* rtc) {
+    startTime = rtc->now();
 }
 
 void setTime(int8_t diff) {
@@ -51,6 +63,22 @@ void setTime(int8_t diff) {
     }
 }
 
+void setStartTime(int8_t diff) {
+    startTime = startTime + TimeSpan(diff * 60);
+}
+
+
 void finishTimeSet() {
     // rtc.adjust(DateTime(2014, 1, 21, newTimeHours, newTimeMinutes, 0));
+}
+
+void finishStartTimeSet(RTC_DS3231* rtc) {
+    DateTime now = rtc->now();
+    if (startTime < now) {
+        startTime = now;
+    }
+}
+
+DateTime getStartTime() {
+    return startTime;
 }

@@ -18,6 +18,7 @@ Encoder encoder(ENCODER_PIN_A, ENCODER_PIN_B);
 #define BTN_SET_TIME_PIN 5
 #define BTN_SET_LOW_TEMP_PIN 6
 #define BTN_SET_HIGH_TEMP_PIN 7
+#define BTN_SET_START_TIME_PIN 8
 
 #define EEPROM_LOW_TEMP_ADDRESS  0
 #define DEFAULT_LOW_TEMP 4
@@ -28,6 +29,7 @@ Button buttonEncoder(ENCODER_PIN_BTN);
 Button buttonSetTime(BTN_SET_TIME_PIN);
 Button buttonSetLowTemp(BTN_SET_LOW_TEMP_PIN);
 Button buttonSetHighTemp(BTN_SET_HIGH_TEMP_PIN);
+Button buttonSetStartTime(BTN_SET_START_TIME_PIN);
 
 bool timeIsSet = true;
 
@@ -40,7 +42,9 @@ void setup() {
     Serial.begin(9600);
     buttonEncoder.begin();
     buttonSetTime.begin();
+    buttonSetStartTime.begin();
     buttonSetLowTemp.begin();
+    buttonSetHighTemp.begin();
 
     lowTemp = EEPROM.read(EEPROM_LOW_TEMP_ADDRESS);
     if ((uint8_t)lowTemp == 255) {
@@ -96,6 +100,18 @@ void loop() {
     }
     else if (buttonSetHighTemp.released()) {
         finishHighTempSet();
+    }
+
+    /* Button set start time pressed */
+    if(buttonSetStartTime.pressed()) {
+        initSetStartTime(&rtc);
+    }
+    else if(buttonSetStartTime.read() == Button::PRESSED && encoderMovement) {
+        setStartTime(getEncoderAcceleratedRelativeMovement(encoderMovement));
+        printStartTime();
+    }
+    else if (buttonSetStartTime.released()) {
+        finishStartTimeSet(&rtc);
     }
 
     const uint32_t currentMillis = millis();
