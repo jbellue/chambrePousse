@@ -38,6 +38,13 @@ uint32_t previousMillis = 0;
 int8_t lowTemp = 4;
 int8_t highTemp = 24;
 
+enum {
+    STATE_WAITING,
+    STATE_KEEPING_COOL,
+    STATE_TEMPERATURE_RAISING,
+    STATE_PROOFING
+} state;
+
 void setup() {
     Serial.begin(9600);
     buttonEncoder.begin();
@@ -51,6 +58,12 @@ void setup() {
         lowTemp = DEFAULT_LOW_TEMP;
     }
     initRTC(&rtc);
+
+    state = STATE_WAITING;
+}
+
+float getTemperature() {
+    return rtc.getTemperature();
 }
 
 void setLowTemp(int8_t encoderMovement) {
@@ -112,13 +125,45 @@ void loop() {
     }
     else if (buttonSetStartTime.released()) {
         finishStartTimeSet(&rtc);
+        state = STATE_KEEPING_COOL;
     }
 
     const uint32_t currentMillis = millis();
 
     if(currentMillis - previousMillis > 1000) {
         previousMillis = currentMillis;
-
+        switch(state) {
+            default:
+            case STATE_WAITING:
+                Serial.println("waiting...");
+                break;
+            case STATE_KEEPING_COOL:
+                Serial.print("keeping cool...");
+                if (getTemperature() > lowTemp) {
+                    Serial.println("actively cooling");
+                    // switch fridge on here
+                }
+                else {
+                    Serial.println("already cool");
+                    // switch fridge off here
+                }
+                if (rtc.now() >= getStartTime()) {
+                    Serial.println("Start heating!!!");
+                    state = STATE_TEMPERATURE_RAISING;
+                }
+                break;
+            case STATE_TEMPERATURE_RAISING:
+                Serial.println("raising temp...");
+                // Slowly ramp up temperature
+                if (getTemperature() >= highTemp) {
+                    state = STATE_PROOFING;
+                }
+                break;
+            case STATE_PROOFING:
+                // keep temperature steady
+                Serial.println("proofing...");
+                break;
+        }
         printRTCTime(&rtc);
     }
 }
