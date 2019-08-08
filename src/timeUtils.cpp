@@ -68,7 +68,7 @@ void setStartTime(int8_t diff) {
 }
 
 
-void finishTimeSet() {
+void finishTimeSet(RTC_DS3231* rtc) {
     // rtc.adjust(DateTime(2014, 1, 21, newTimeHours, newTimeMinutes, 0));
 }
 

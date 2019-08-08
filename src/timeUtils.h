@@ -18,7 +18,7 @@ void setTime(int8_t diff);
 
 void setStartTime(int8_t diff);
 
-void finishTimeSet();
+void finishTimeSet(RTC_DS3231* rtc);
 void finishStartTimeSet(RTC_DS3231* rtc);
 
 DateTime getStartTime();
