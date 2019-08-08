@@ -5,7 +5,7 @@
 #define ENCODER_VERY_FAST_MS 10
 
 uint32_t lastEncoderRead = 0;
-long oldEncoderPosition  = -999;
+long oldEncoderPosition  = 0;
 
 int8_t getEncoderRelativeMovement(Encoder* encoder) {
     int8_t ret = 0;
