@@ -83,12 +83,12 @@ void setup() {
     if ((uint8_t)lowTemp == 255) {
         lowTemp = DEFAULT_LOW_TEMP;
     }
-    initRTC(&rtc);
-    if (rtc.lostPower()) {
-        changeState(STATE_TIME_UNSET);
+    if (initRTC(&rtc)) {
+        changeState(STATE_WAITING);
     }
     else {
-        changeState(STATE_WAITING);
+        Serial.println("RTC lost power, need to set the time!");
+        changeState(STATE_TIME_UNSET);
     }
 }
 

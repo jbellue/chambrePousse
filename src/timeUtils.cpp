@@ -5,15 +5,14 @@ int8_t newTimeHours = 12;
 
 DateTime startTime;
 
-void initRTC(RTC_DS3231* rtc) {
+bool initRTC(RTC_DS3231* rtc) {
     if (! rtc->begin()) {
         Serial.println("Couldn't find RTC");
         while (1);
     }
 
-    if (rtc->lostPower()) {
-        Serial.println("RTC lost power, need to set the time!");
-    }
+    return !rtc->lostPower();
+}
 
 void printTempTime() {
     char timeBuffer[19];

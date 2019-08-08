@@ -3,7 +3,7 @@
 
 #include <RTClib.h>
 
-void initRTC(RTC_DS3231* rtc);
+bool initRTC(RTC_DS3231* rtc);
 
 void printTempTime();
 void printStartTime();
