@@ -14,17 +14,16 @@ void initRTC(RTC_DS3231* rtc) {
     if (rtc->lostPower()) {
         Serial.println("RTC lost power, need to set the time!");
     }
-}
 
 void printTempTime() {
-    char timeBuffer[6];
-    sprintf(timeBuffer, "%d:%02d", newTimeHours, newTimeMinutes);
+    char timeBuffer[19];
+    sprintf(timeBuffer, "New time: %d:%02d:00", newTimeHours, newTimeMinutes);
     Serial.println(timeBuffer);
 }
 
 void printStartTime() {
-    char timeBuffer[6];
-    sprintf(timeBuffer, "%d:%02d", startTime.hour(), startTime.minute());
+    char timeBuffer[25];
+    sprintf(timeBuffer, "New start time: %d:%02d:%02d", startTime.hour(), startTime.minute(), startTime.second());
     Serial.println(timeBuffer);
 }
 
