@@ -23,4 +23,6 @@ void finishStartTimeSet(RTC_DS3231* rtc);
 
 DateTime getStartTime();
 
+void printTimeLeft(RTC_DS3231* rtc);
+
 #endif

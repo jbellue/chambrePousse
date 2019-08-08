@@ -32,6 +32,16 @@ void printRTCTime(RTC_DS3231* rtc) {
     DateTime now = rtc->now();
     char timeBuffer[9];
     sprintf(timeBuffer, "%d:%02d:%02d", now.hour(), now.minute(), now.second());
+    Serial.print(timeBuffer);
+}
+
+void printTimeLeft(RTC_DS3231* rtc) {
+    TimeSpan left = rtc->now() - startTime;
+    const int8_t tsHours =   left.hours()   < 0 ? -1 * left.hours()  :left.hours();
+    const int8_t tsMinutes = left.minutes() < 0 ? -1 * left.minutes():left.minutes();
+    const int8_t tsSeconds = left.seconds() < 0 ? -1 * left.seconds():left.seconds();
+    char timeBuffer[10];
+    sprintf(timeBuffer, "-%02d:%02d:%02d", tsHours, tsMinutes, tsSeconds);
     Serial.println(timeBuffer);
 }
 
