@@ -18,8 +18,9 @@ Encoder encoder(ENCODER_PIN_A, ENCODER_PIN_B);
 #define PIN_BTN_SET_TIME 5
 #define PIN_BTN_SET_LOW_TEMP 6
 #define PIN_BTN_SET_HIGH_TEMP 7
-/* 8 vert
-   9 rouge */
+
+#define PIN_LED_PROOFING 8
+
 #define EEPROM_LOW_TEMP_ADDRESS  0
 #define DEFAULT_LOW_TEMP 4
 #define EEPROM_HIGH_TEMP_ADDRESS 1
@@ -33,6 +34,7 @@ Button buttonSetHighTemp(PIN_BTN_SET_HIGH_TEMP);
 bool timeIsSet = true;
 
 uint32_t previousMillis = 0;
+uint32_t lastBlinkingTime = 0;
 
 int8_t lowTemp = 4;
 int8_t highTemp = 24;
@@ -79,6 +81,9 @@ void setup() {
     buttonSetLowTemp.begin();
     buttonSetHighTemp.begin();
 
+    pinMode(PIN_LED_PROOFING, OUTPUT);
+    pinMode(LED_BUILTIN, OUTPUT);
+
     lowTemp = EEPROM.read(EEPROM_LOW_TEMP_ADDRESS);
     if ((uint8_t)lowTemp == 255) {
         lowTemp = DEFAULT_LOW_TEMP;
@@ -112,6 +117,16 @@ void setHighTemp(int8_t encoderMovement) {
 
 void finishHighTempSet() {
     EEPROM.update(EEPROM_HIGH_TEMP_ADDRESS, highTemp);
+}
+
+void blinkCountdownLED() {
+    const uint32_t currentMillis = millis();
+ 
+    if(currentMillis - lastBlinkingTime > 250) {
+        lastBlinkingTime = currentMillis;   
+
+        digitalWrite(LED_BUILTIN, !digitalRead(LED_BUILTIN));
+    }
 }
 
 void loop() {
@@ -177,8 +192,11 @@ void loop() {
             }
             break;
         case STATE_COUNTDOWN:
+            blinkCountdownLED();
             if (rtc.now() >= getStartTime()) {
                 Serial.println("Start heating!!!");
+                digitalWrite(LED_BUILTIN, LOW);
+                digitalWrite(PIN_LED_PROOFING, HIGH);
                 changeState(STATE_PROOFING);
             }
             break;
