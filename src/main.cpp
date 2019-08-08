@@ -14,22 +14,21 @@ RTC_DS3231 rtc;
 #define ENCODER_PIN_B 3
 Encoder encoder(ENCODER_PIN_A, ENCODER_PIN_B);
 
-#define ENCODER_PIN_BTN 4
-#define BTN_SET_TIME_PIN 5
-#define BTN_SET_LOW_TEMP_PIN 6
-#define BTN_SET_HIGH_TEMP_PIN 7
-#define BTN_SET_START_TIME_PIN 8
-
+#define PIN_BTN_ENCODER 4
+#define PIN_BTN_SET_TIME 5
+#define PIN_BTN_SET_LOW_TEMP 6
+#define PIN_BTN_SET_HIGH_TEMP 7
+/* 8 vert
+   9 rouge */
 #define EEPROM_LOW_TEMP_ADDRESS  0
 #define DEFAULT_LOW_TEMP 4
 #define EEPROM_HIGH_TEMP_ADDRESS 1
 #define DEFAULT_HIGH_TEMP 24
 
-Button buttonEncoder(ENCODER_PIN_BTN);
-Button buttonSetTime(BTN_SET_TIME_PIN);
-Button buttonSetLowTemp(BTN_SET_LOW_TEMP_PIN);
-Button buttonSetHighTemp(BTN_SET_HIGH_TEMP_PIN);
-Button buttonSetStartTime(BTN_SET_START_TIME_PIN);
+Button buttonEncoder(PIN_BTN_ENCODER);
+Button buttonSetTime(PIN_BTN_SET_TIME);
+Button buttonSetLowTemp(PIN_BTN_SET_LOW_TEMP);
+Button buttonSetHighTemp(PIN_BTN_SET_HIGH_TEMP);
 
 bool timeIsSet = true;
 
@@ -38,18 +37,45 @@ uint32_t previousMillis = 0;
 int8_t lowTemp = 4;
 int8_t highTemp = 24;
 
-enum {
+enum State_t {
     STATE_WAITING,
-    STATE_KEEPING_COOL,
-    STATE_TEMPERATURE_RAISING,
+    STATE_TIME_UNSET,
+    STATE_COUNTDOWN,
+    // STATE_TEMPERATURE_RAISING,
     STATE_PROOFING
 } state;
+bool stateIsNew = true;
+
+void printStateToSerial(State_t state) {
+    switch(state) {
+        case STATE_WAITING:
+            Serial.print("WAITING");
+            break;
+        case STATE_TIME_UNSET:
+            Serial.print("TIME_UNSET");
+            break;
+        case STATE_COUNTDOWN:
+            Serial.print("COUNTDOWN");
+            break;
+        case STATE_PROOFING:
+            Serial.print("PROOFING");
+            break;
+    }
+}
+void changeState(State_t newState) {
+    Serial.print("Going from state ");
+    printStateToSerial(state);
+    state = newState;
+    Serial.print(" to state ");
+    printStateToSerial(state);
+    Serial.println("");
+    stateIsNew = true;
+}
 
 void setup() {
     Serial.begin(9600);
     buttonEncoder.begin();
     buttonSetTime.begin();
-    buttonSetStartTime.begin();
     buttonSetLowTemp.begin();
     buttonSetHighTemp.begin();
 
@@ -58,8 +84,12 @@ void setup() {
         lowTemp = DEFAULT_LOW_TEMP;
     }
     initRTC(&rtc);
-
-    state = STATE_WAITING;
+    if (rtc.lostPower()) {
+        changeState(STATE_TIME_UNSET);
+    }
+    else {
+        changeState(STATE_WAITING);
+    }
 }
 
 float getTemperature() {
@@ -85,23 +115,12 @@ void finishHighTempSet() {
 }
 
 void loop() {
-    const int8_t encoderMovement = getEncoderRelativeMovement(&encoder);
-
-    /* Button set time pressed */
-    if(buttonSetTime.pressed()) {
-        initSetTime(&rtc);
-    }
-    else if(buttonSetTime.read() == Button::PRESSED && encoderMovement) {
-        setTime(getEncoderAcceleratedRelativeMovement(encoderMovement));
-        printTempTime();
-    }
-    else if (buttonSetTime.released()) {
-        finishTimeSet();
-    }
+    int8_t encoderMovement = getEncoderRelativeMovement(&encoder);
 
     /* Button set low temperature pressed */
     if(buttonSetLowTemp.read() == Button::PRESSED && encoderMovement) {
         setLowTemp(encoderMovement);
+        encoderMovement = 0;
     }
     else if (buttonSetLowTemp.released()) {
         finishLowTempSet();
@@ -110,60 +129,70 @@ void loop() {
     /* Button set high temperature pressed */
     if(buttonSetHighTemp.read() == Button::PRESSED && encoderMovement) {
         setHighTemp(encoderMovement);
+        encoderMovement = 0;
     }
     else if (buttonSetHighTemp.released()) {
         finishHighTempSet();
     }
 
-    /* Button set start time pressed */
-    if(buttonSetStartTime.pressed()) {
-        initSetStartTime(&rtc);
-    }
-    else if(buttonSetStartTime.read() == Button::PRESSED && encoderMovement) {
-        setStartTime(getEncoderAcceleratedRelativeMovement(encoderMovement));
-        printStartTime();
-    }
-    else if (buttonSetStartTime.released()) {
-        finishStartTimeSet(&rtc);
-        state = STATE_KEEPING_COOL;
+    switch(state) {
+        case STATE_TIME_UNSET:
+            if(encoderMovement) {
+                if(stateIsNew) {
+                    initSetTime(&rtc);
+                    stateIsNew = false;
+                }
+                setTime(getEncoderAcceleratedRelativeMovement(encoderMovement));
+                printTempTime();
+                encoderMovement = 0;
+            }
+            else if (buttonEncoder.pressed()) {
+                if(stateIsNew) {
+                    initSetTime(&rtc);
+                    stateIsNew = false;
+                }
+                finishTimeSet(&rtc);
+                changeState(STATE_WAITING);
+            }
+            break;
+        default:
+        case STATE_WAITING:
+            if(encoderMovement) {
+                if(stateIsNew) {
+                    initSetStartTime(&rtc);
+                    Serial.println("Setting the start time");
+                    stateIsNew = false;
+                }
+                setStartTime(getEncoderAcceleratedRelativeMovement(encoderMovement));
+                encoderMovement = 0;
+                printStartTime();
+            }
+            else if (buttonEncoder.pressed()) {
+                if(stateIsNew) {
+                    initSetStartTime(&rtc);
+                    stateIsNew = false;
+                }
+                finishStartTimeSet(&rtc);
+                changeState(STATE_COUNTDOWN);
+            }
+            break;
+        case STATE_COUNTDOWN:
+            if (rtc.now() >= getStartTime()) {
+                Serial.println("Start heating!!!");
+                changeState(STATE_PROOFING);
+            }
+            break;
+        case STATE_PROOFING:
+            // keep temperature steady
+            break;
     }
 
     const uint32_t currentMillis = millis();
-
-    if(currentMillis - previousMillis > 1000) {
-        previousMillis = currentMillis;
-        switch(state) {
-            default:
-            case STATE_WAITING:
-                Serial.println("waiting...");
-                break;
-            case STATE_KEEPING_COOL:
-                Serial.print("keeping cool...");
-                if (getTemperature() > lowTemp) {
-                    Serial.println("actively cooling");
-                    // switch fridge on here
-                }
-                else {
-                    Serial.println("already cool");
-                    // switch fridge off here
-                }
-                if (rtc.now() >= getStartTime()) {
-                    Serial.println("Start heating!!!");
-                    state = STATE_TEMPERATURE_RAISING;
-                }
-                break;
-            case STATE_TEMPERATURE_RAISING:
-                Serial.println("raising temp...");
-                // Slowly ramp up temperature
-                if (getTemperature() >= highTemp) {
-                    state = STATE_PROOFING;
-                }
-                break;
-            case STATE_PROOFING:
-                // keep temperature steady
-                Serial.println("proofing...");
-                break;
-        }
+    if(currentMillis - previousMillis > 2000) {
         printRTCTime(&rtc);
+        Serial.print(": ");
+        printStateToSerial(state);
+        Serial.println("");
+        previousMillis = currentMillis;
     }
 }
