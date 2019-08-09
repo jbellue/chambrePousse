@@ -20,6 +20,8 @@ Encoder encoder(ENCODER_PIN_A, ENCODER_PIN_B);
 #define PIN_BTN_SET_HIGH_TEMP 7
 
 #define PIN_LED_PROOFING 8
+#define PIN_LED_COLD 10
+#define PIN_LED_HOT 11
 
 #define EEPROM_LOW_TEMP_ADDRESS  0
 #define DEFAULT_LOW_TEMP 4
@@ -34,6 +36,7 @@ Button buttonSetHighTemp(PIN_BTN_SET_HIGH_TEMP);
 bool timeIsSet = true;
 
 uint32_t previousMillis = 0;
+uint32_t previousPrintTimeLeftMillis = 0;
 uint32_t lastBlinkingTime = 0;
 
 int8_t lowTemp = 4;
@@ -83,6 +86,8 @@ void setup() {
 
     pinMode(PIN_LED_PROOFING, OUTPUT);
     pinMode(LED_BUILTIN, OUTPUT);
+    pinMode(PIN_LED_COLD, OUTPUT);
+    pinMode(PIN_LED_HOT, OUTPUT);
 
     lowTemp = EEPROM.read(EEPROM_LOW_TEMP_ADDRESS);
     if ((uint8_t)lowTemp == 255) {
@@ -191,18 +196,39 @@ void loop() {
                 changeState(STATE_COUNTDOWN);
             }
             break;
-        case STATE_COUNTDOWN:
+        case STATE_COUNTDOWN: {
             blinkCountdownLED();
+            if(stateIsNew) {
+                stateIsNew = false;
+                digitalWrite(PIN_LED_COLD, HIGH);
+            }
+            const uint32_t currentMillis = millis();
+            if(currentMillis - previousPrintTimeLeftMillis > 1000) {
+                printTimeLeftInCountdown(&rtc);
+                previousPrintTimeLeftMillis = currentMillis;
+            }
             if (rtc.now() >= getStartTime()) {
-                Serial.println("Start heating!!!");
-                digitalWrite(LED_BUILTIN, LOW);
-                digitalWrite(PIN_LED_PROOFING, HIGH);
                 changeState(STATE_PROOFING);
             }
             break;
-        case STATE_PROOFING:
+        }
+        case STATE_PROOFING: {
+            if(stateIsNew) {
+                stateIsNew = false;
+                Serial.println("Start heating!!!");
+                digitalWrite(LED_BUILTIN, LOW);
+                digitalWrite(PIN_LED_PROOFING, HIGH);
+                digitalWrite(PIN_LED_COLD, LOW);
+                digitalWrite(PIN_LED_HOT, HIGH);
+            }
+            const uint32_t currentMillis = millis();
+            if(currentMillis - previousPrintTimeLeftMillis > 1000) {
+                printTimeProofing(&rtc);
+                previousPrintTimeLeftMillis = currentMillis;
+            }
             // keep temperature steady
             break;
+        }
     }
 
     const uint32_t currentMillis = millis();

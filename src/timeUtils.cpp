@@ -33,13 +33,20 @@ void printRTCTime(RTC_DS3231* rtc) {
     Serial.print(timeBuffer);
 }
 
-void printTimeLeft(RTC_DS3231* rtc) {
-    TimeSpan left = rtc->now() - startTime;
-    const int8_t tsHours =   left.hours()   < 0 ? -1 * left.hours()  :left.hours();
-    const int8_t tsMinutes = left.minutes() < 0 ? -1 * left.minutes():left.minutes();
-    const int8_t tsSeconds = left.seconds() < 0 ? -1 * left.seconds():left.seconds();
-    char timeBuffer[10];
-    sprintf(timeBuffer, "-%02d:%02d:%02d", tsHours, tsMinutes, tsSeconds);
+void printTimeLeftInCountdown(RTC_DS3231* rtc) {
+    TimeSpan timeLeft = rtc->now() - startTime;
+    const int8_t tsHours =   timeLeft.hours()   < 0 ? -1 * timeLeft.hours()  :timeLeft.hours();
+    const int8_t tsMinutes = timeLeft.minutes() < 0 ? -1 * timeLeft.minutes():timeLeft.minutes();
+    const int8_t tsSeconds = timeLeft.seconds() < 0 ? -1 * timeLeft.seconds():timeLeft.seconds();
+    char timeBuffer[20];
+    sprintf(timeBuffer, "Time left: %d:%02d:%02d", tsHours, tsMinutes, tsSeconds);
+    Serial.println(timeBuffer);
+}
+
+void printTimeProofing(RTC_DS3231* rtc) {
+    TimeSpan timeProofing = rtc->now() - startTime;
+    char timeBuffer[24];
+    sprintf(timeBuffer, "Time proofing: %d:%02d:%02d", timeProofing.hours(), timeProofing.minutes(), timeProofing.seconds());
     Serial.println(timeBuffer);
 }
 

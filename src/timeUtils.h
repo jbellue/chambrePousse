@@ -7,6 +7,8 @@ bool initRTC(RTC_DS3231* rtc);
 
 void printTempTime();
 void printStartTime();
+void printTimeLeftInCountdown(RTC_DS3231* rtc);
+void printTimeProofing(RTC_DS3231* rtc);
 
 
 void printRTCTime(RTC_DS3231* rtc);
@@ -22,7 +24,5 @@ void finishTimeSet(RTC_DS3231* rtc);
 void finishStartTimeSet(RTC_DS3231* rtc);
 
 DateTime getStartTime();
-
-void printTimeLeft(RTC_DS3231* rtc);
 
 #endif
