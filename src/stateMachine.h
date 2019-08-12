@@ -26,8 +26,10 @@ void stateCountdownAct(int8_t*);
 void stateProofingInit();
 void stateProofingAct(int8_t*);
 
-void printStateToSerial(State_t state);
+void printStateToSerial();
 void changeState(State_t newState);
+
+void stateMachineReact(int8_t*);
 
 void runIfNewState(void(*)());
 #endif

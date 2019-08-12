@@ -1,9 +1,9 @@
 #include <stateMachine.h>
 
 bool stateHasChanged = false;
-extern State_t state;
+State_t state;
 
-StateMachine_t StateMachine[] = {
+StateMachine_t stateMachine[] = {
     {STATE_WAITING,    NULL,               stateWaitingAct},
     {STATE_TIME_UNSET, NULL,               stateTimeUnsetAct},
     {STATE_COUNTDOWN,  stateCountdownInit, stateCountdownAct},
@@ -19,7 +19,7 @@ void runIfNewState(void(*functionToRun)()) {
     }
 }
 
-void printStateToSerial(State_t state) {
+void printStateToSerial() {
     switch(state) {
         case STATE_WAITING:
             Serial.print("WAITING");
@@ -39,16 +39,20 @@ void printStateToSerial(State_t state) {
 }
 
 void changeState(State_t newState) {
-    if (newState < State_t::NUM_STATE) {
+    if (newState < State_t::NUM_STATE && newState != state) {
         Serial.print("Going from state ");
-        printStateToSerial(state);
+        printStateToSerial();
         state = newState;
         stateHasChanged = true;
         Serial.print(" to state ");
-        printStateToSerial(state);
+        printStateToSerial();
         Serial.println("");
-        if ((*StateMachine[state].init)) {
-            (*StateMachine[state].init)();
+        if ((*stateMachine[state].init)) {
+            (*stateMachine[state].init)();
         }
     }
+}
+
+void stateMachineReact(int8_t* encoderMovement) {
+    (*stateMachine[state].act)(encoderMovement);
 }

@@ -31,7 +31,7 @@ Encoder encoder(ENCODER_PIN_A, ENCODER_PIN_B);
 #define EEPROM_LOW_TEMP_ADDRESS  0
 #define DEFAULT_LOW_TEMP 4
 #define EEPROM_PROOFING_TEMP_ADDRESS 1
-#define DEFAULT_HIGH_TEMP 24
+#define DEFAULT_PROOFING_TEMP 24
 
 Button buttonEncoder(PIN_BTN_ENCODER);
 Button buttonSetTime(PIN_BTN_SET_TIME);
@@ -42,11 +42,8 @@ uint32_t previousMillis = 0;
 uint32_t previousTickTime = 0;
 uint32_t lastBlinkingTime = 0;
 
-int8_t lowTemp = 4;
-int8_t proofingTemperature = 24;
-
-extern StateMachine_t StateMachine[];
-State_t state;
+int8_t lowTemp = DEFAULT_LOW_TEMP;
+int8_t proofingTemperature = DEFAULT_PROOFING_TEMP;
 
 void setup() {
     Serial.begin(115200);
@@ -64,6 +61,11 @@ void setup() {
     if ((uint8_t)lowTemp == 255) {
         lowTemp = DEFAULT_LOW_TEMP;
     }
+    proofingTemperature = EEPROM.read(EEPROM_PROOFING_TEMP_ADDRESS);
+    if ((uint8_t)proofingTemperature == 255) {
+        proofingTemperature = DEFAULT_PROOFING_TEMP;
+    }
+
     if (initRTC(&rtc)) {
         changeState(STATE_WAITING);
     }
@@ -99,13 +101,13 @@ void loop() {
     handleButtonSetLowTemp(&encoderMovement);
     handleButtonSetProofingTemperature(&encoderMovement);
 
-    (*StateMachine[state].act)(&encoderMovement);
+    stateMachineReact(&encoderMovement);
 
     const uint32_t currentMillis = millis();
     if(currentMillis - previousMillis > 2000) {
         printRTCTime(&rtc);
         Serial.print(": ");
-        printStateToSerial(state);
+        printStateToSerial();
         Serial.println("");
         previousMillis = currentMillis;
     }
