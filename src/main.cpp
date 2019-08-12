@@ -1,6 +1,7 @@
 #include <Arduino.h>
 #include <Encoder.h>
 #include <encoderData.h>
+#include <stateMachine.h>
 #include <RTClib.h>
 #include <timeUtils.h>
 #include <Button.h>
@@ -44,6 +45,7 @@ uint32_t lastBlinkingTime = 0;
 int8_t lowTemp = 4;
 int8_t proofingTemperature = 24;
 
+extern StateMachine_t StateMachine[];
 State_t state;
 
 void setup() {
@@ -71,26 +73,31 @@ void setup() {
     }
 }
 
-void loop() {
-    int8_t encoderMovement = getEncoderRelativeMovement(&encoder);
-
-    /* Button set low temperature pressed */
-    if(buttonSetLowTemp.read() == Button::PRESSED && encoderMovement) {
-        setLowTemp(encoderMovement);
-        encoderMovement = 0;
+void handleButtonSetLowTemp(int8_t* encoderMovement) {
+    if(buttonSetLowTemp.read() == Button::PRESSED && *encoderMovement) {
+        setLowTemp(*encoderMovement);
+        *encoderMovement = 0;
     }
     else if (buttonSetLowTemp.released()) {
         finishLowTempSet();
     }
+}
 
-    /* Button set high temperature pressed */
-    if(buttonSetProofingTemperature.read() == Button::PRESSED && encoderMovement) {
-        setProofingTemperature(encoderMovement);
-        encoderMovement = 0;
+void handleButtonSetProofingTemperature(int8_t* encoderMovement) {
+    if(buttonSetProofingTemperature.read() == Button::PRESSED && *encoderMovement) {
+        setProofingTemperature(*encoderMovement);
+        *encoderMovement = 0;
     }
     else if (buttonSetProofingTemperature.released()) {
         finishProofingTemperatureSet();
     }
+}
+
+void loop() {
+    int8_t encoderMovement = getEncoderRelativeMovement(&encoder);
+
+    handleButtonSetLowTemp(&encoderMovement);
+    handleButtonSetProofingTemperature(&encoderMovement);
 
     (*StateMachine[state].act)(&encoderMovement);
 
@@ -101,35 +108,6 @@ void loop() {
         printStateToSerial(state);
         Serial.println("");
         previousMillis = currentMillis;
-    }
-}
-
-void printStateToSerial(State_t state) {
-    switch(state) {
-        case STATE_WAITING:
-            Serial.print("WAITING");
-            break;
-        case STATE_TIME_UNSET:
-            Serial.print("TIME_UNSET");
-            break;
-        case STATE_COUNTDOWN:
-            Serial.print("COUNTDOWN");
-            break;
-        case STATE_PROOFING:
-            Serial.print("PROOFING");
-            break;
-    }
-}
-
-void changeState(State_t newState) {
-    if (newState < State_t::NUM_STATE) {
-        Serial.print("Going from state ");
-        printStateToSerial(state);
-        state = newState;
-        Serial.print(" to state ");
-        printStateToSerial(state);
-        Serial.println("");
-        (*StateMachine[state].init)();
     }
 }
 
@@ -172,11 +150,13 @@ void stateWaitingInit() {
 
 void stateWaitingAct(int8_t* encoderMovement) {
     if(*encoderMovement) {
+        runIfNewState(stateWaitingInit);
         setStartTime(getEncoderAcceleratedRelativeMovement(*encoderMovement));
         *encoderMovement = 0;
         printStartTime();
     }
     else if (buttonEncoder.pressed()) {
+        runIfNewState(stateWaitingInit);
         finishStartTimeSet(&rtc);
         changeState(STATE_COUNTDOWN);
     }
@@ -187,11 +167,13 @@ void stateTimeUnsetInit() {
 }
 void stateTimeUnsetAct(int8_t* encoderMovement){
     if(*encoderMovement) {
+        runIfNewState(stateTimeUnsetInit);
         setTime(getEncoderAcceleratedRelativeMovement(*encoderMovement));
         printTempTime();
         *encoderMovement = 0;
     }
     else if (buttonEncoder.pressed()) {
+        runIfNewState(stateTimeUnsetInit);
         finishTimeSet(&rtc);
         changeState(STATE_WAITING);
     }
