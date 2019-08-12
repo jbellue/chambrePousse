@@ -5,6 +5,7 @@
 #include <timeUtils.h>
 #include <Button.h>
 #include <EEPROM.h>
+#include <main.h>
 
 RTC_DS3231 rtc;
 
@@ -13,6 +14,9 @@ RTC_DS3231 rtc;
 #define ENCODER_PIN_A 2
 #define ENCODER_PIN_B 3
 Encoder encoder(ENCODER_PIN_A, ENCODER_PIN_B);
+
+// How many degrees away from the defined temperature are acceptable
+#define ACCEPTABLE_DELTA_TEMPERATURE 1
 
 #define PIN_BTN_ENCODER 4
 #define PIN_BTN_SET_TIME 5
@@ -25,64 +29,30 @@ Encoder encoder(ENCODER_PIN_A, ENCODER_PIN_B);
 
 #define EEPROM_LOW_TEMP_ADDRESS  0
 #define DEFAULT_LOW_TEMP 4
-#define EEPROM_HIGH_TEMP_ADDRESS 1
+#define EEPROM_PROOFING_TEMP_ADDRESS 1
 #define DEFAULT_HIGH_TEMP 24
 
 Button buttonEncoder(PIN_BTN_ENCODER);
 Button buttonSetTime(PIN_BTN_SET_TIME);
 Button buttonSetLowTemp(PIN_BTN_SET_LOW_TEMP);
-Button buttonSetHighTemp(PIN_BTN_SET_HIGH_TEMP);
-
-bool timeIsSet = true;
+Button buttonSetProofingTemperature(PIN_BTN_SET_HIGH_TEMP);
 
 uint32_t previousMillis = 0;
-uint32_t previousPrintTimeLeftMillis = 0;
+uint32_t previousTickTime = 0;
 uint32_t lastBlinkingTime = 0;
 
 int8_t lowTemp = 4;
-int8_t highTemp = 24;
+int8_t proofingTemperature = 24;
 
-enum State_t {
-    STATE_WAITING,
-    STATE_TIME_UNSET,
-    STATE_COUNTDOWN,
-    // STATE_TEMPERATURE_RAISING,
-    STATE_PROOFING
-} state;
+State_t state;
 bool stateIsNew = true;
 
-void printStateToSerial(State_t state) {
-    switch(state) {
-        case STATE_WAITING:
-            Serial.print("WAITING");
-            break;
-        case STATE_TIME_UNSET:
-            Serial.print("TIME_UNSET");
-            break;
-        case STATE_COUNTDOWN:
-            Serial.print("COUNTDOWN");
-            break;
-        case STATE_PROOFING:
-            Serial.print("PROOFING");
-            break;
-    }
-}
-void changeState(State_t newState) {
-    Serial.print("Going from state ");
-    printStateToSerial(state);
-    state = newState;
-    Serial.print(" to state ");
-    printStateToSerial(state);
-    Serial.println("");
-    stateIsNew = true;
-}
-
 void setup() {
-    Serial.begin(9600);
+    Serial.begin(115200);
     buttonEncoder.begin();
     buttonSetTime.begin();
     buttonSetLowTemp.begin();
-    buttonSetHighTemp.begin();
+    buttonSetProofingTemperature.begin();
 
     pinMode(PIN_LED_PROOFING, OUTPUT);
     pinMode(LED_BUILTIN, OUTPUT);
@@ -102,38 +72,6 @@ void setup() {
     }
 }
 
-float getTemperature() {
-    return rtc.getTemperature();
-}
-
-void setLowTemp(int8_t encoderMovement) {
-    lowTemp += encoderMovement;
-    Serial.println(lowTemp);
-}
-
-void finishLowTempSet() {
-    EEPROM.update(EEPROM_LOW_TEMP_ADDRESS, lowTemp);
-}
-
-void setHighTemp(int8_t encoderMovement) {
-    highTemp += encoderMovement;
-    Serial.println(highTemp);
-}
-
-void finishHighTempSet() {
-    EEPROM.update(EEPROM_HIGH_TEMP_ADDRESS, highTemp);
-}
-
-void blinkCountdownLED() {
-    const uint32_t currentMillis = millis();
- 
-    if(currentMillis - lastBlinkingTime > 250) {
-        lastBlinkingTime = currentMillis;   
-
-        digitalWrite(LED_BUILTIN, !digitalRead(LED_BUILTIN));
-    }
-}
-
 void loop() {
     int8_t encoderMovement = getEncoderRelativeMovement(&encoder);
 
@@ -147,86 +85,27 @@ void loop() {
     }
 
     /* Button set high temperature pressed */
-    if(buttonSetHighTemp.read() == Button::PRESSED && encoderMovement) {
-        setHighTemp(encoderMovement);
+    if(buttonSetProofingTemperature.read() == Button::PRESSED && encoderMovement) {
+        setProofingTemperature(encoderMovement);
         encoderMovement = 0;
     }
-    else if (buttonSetHighTemp.released()) {
-        finishHighTempSet();
+    else if (buttonSetProofingTemperature.released()) {
+        finishProofingTemperatureSet();
     }
 
     switch(state) {
         case STATE_TIME_UNSET:
-            if(encoderMovement) {
-                if(stateIsNew) {
-                    initSetTime(&rtc);
-                    stateIsNew = false;
-                }
-                setTime(getEncoderAcceleratedRelativeMovement(encoderMovement));
-                printTempTime();
-                encoderMovement = 0;
-            }
-            else if (buttonEncoder.pressed()) {
-                if(stateIsNew) {
-                    initSetTime(&rtc);
-                    stateIsNew = false;
-                }
-                finishTimeSet(&rtc);
-                changeState(STATE_WAITING);
-            }
+            handleStateTimeUnset(&encoderMovement);
             break;
         default:
         case STATE_WAITING:
-            if(encoderMovement) {
-                if(stateIsNew) {
-                    initSetStartTime(&rtc);
-                    Serial.println("Setting the start time");
-                    stateIsNew = false;
-                }
-                setStartTime(getEncoderAcceleratedRelativeMovement(encoderMovement));
-                encoderMovement = 0;
-                printStartTime();
-            }
-            else if (buttonEncoder.pressed()) {
-                if(stateIsNew) {
-                    initSetStartTime(&rtc);
-                    stateIsNew = false;
-                }
-                finishStartTimeSet(&rtc);
-                changeState(STATE_COUNTDOWN);
-            }
+            handleStateWaiting(&encoderMovement);
             break;
-        case STATE_COUNTDOWN: {
-            blinkCountdownLED();
-            if(stateIsNew) {
-                stateIsNew = false;
-                digitalWrite(PIN_LED_COLD, HIGH);
-            }
-            const uint32_t currentMillis = millis();
-            if(currentMillis - previousPrintTimeLeftMillis > 1000) {
-                printTimeLeftInCountdown(&rtc);
-                previousPrintTimeLeftMillis = currentMillis;
-            }
-            if (rtc.now() >= getStartTime()) {
-                changeState(STATE_PROOFING);
-            }
+        case STATE_COUNTDOWN:
+            handleStateCountdown(&encoderMovement);
             break;
-        }
         case STATE_PROOFING: {
-            if(stateIsNew) {
-                stateIsNew = false;
-                Serial.println("Start heating!!!");
-                digitalWrite(LED_BUILTIN, LOW);
-                digitalWrite(PIN_LED_PROOFING, HIGH);
-                digitalWrite(PIN_LED_COLD, LOW);
-                digitalWrite(PIN_LED_HOT, HIGH);
-            }
-            const uint32_t currentMillis = millis();
-            if(currentMillis - previousPrintTimeLeftMillis > 1000) {
-                printTimeProofing(&rtc);
-                previousPrintTimeLeftMillis = currentMillis;
-            }
-            // keep temperature steady
+            handleStateProofing();
             break;
         }
     }
@@ -238,5 +117,145 @@ void loop() {
         printStateToSerial(state);
         Serial.println("");
         previousMillis = currentMillis;
+    }
+}
+
+void printStateToSerial(State_t state) {
+    switch(state) {
+        case STATE_WAITING:
+            Serial.print("WAITING");
+            break;
+        case STATE_TIME_UNSET:
+            Serial.print("TIME_UNSET");
+            break;
+        case STATE_COUNTDOWN:
+            Serial.print("COUNTDOWN");
+            break;
+        case STATE_PROOFING:
+            Serial.print("PROOFING");
+            break;
+    }
+}
+
+void changeState(State_t newState) {
+    Serial.print("Going from state ");
+    printStateToSerial(state);
+    state = newState;
+    Serial.print(" to state ");
+    printStateToSerial(state);
+    Serial.println("");
+    stateIsNew = true;
+}
+
+float getTemperature() {
+    return rtc.getTemperature();
+}
+
+void setLowTemp(int8_t encoderMovement) {
+    lowTemp += encoderMovement;
+    Serial.println(lowTemp);
+}
+
+void finishLowTempSet() {
+    EEPROM.update(EEPROM_LOW_TEMP_ADDRESS, lowTemp);
+}
+
+void setProofingTemperature(int8_t encoderMovement) {
+    proofingTemperature += encoderMovement;
+    Serial.println(proofingTemperature);
+}
+
+void finishProofingTemperatureSet() {
+    EEPROM.update(EEPROM_PROOFING_TEMP_ADDRESS, proofingTemperature);
+}
+
+void blinkCountdownLED() {
+    const uint32_t currentMillis = millis();
+ 
+    if(currentMillis - lastBlinkingTime > 250) {
+        lastBlinkingTime = currentMillis;   
+
+        digitalWrite(LED_BUILTIN, !digitalRead(LED_BUILTIN));
+    }
+}
+
+void handleStateTimeUnset(int8_t* encoderMovement) {
+    if(*encoderMovement) {
+        if(stateIsNew) {
+            initSetTime(&rtc);
+            stateIsNew = false;
+        }
+        setTime(getEncoderAcceleratedRelativeMovement(*encoderMovement));
+        printTempTime();
+        *encoderMovement = 0;
+    }
+    else if (buttonEncoder.pressed()) {
+        if(stateIsNew) {
+            initSetTime(&rtc);
+            stateIsNew = false;
+        }
+        finishTimeSet(&rtc);
+        changeState(STATE_WAITING);
+    }
+}
+
+void handleStateWaiting(int8_t* encoderMovement) {
+    if(*encoderMovement) {
+        if(stateIsNew) {
+            initSetStartTime(&rtc);
+            Serial.println("Setting the start time");
+            stateIsNew = false;
+        }
+        setStartTime(getEncoderAcceleratedRelativeMovement(*encoderMovement));
+        *encoderMovement = 0;
+        printStartTime();
+    }
+    else if (buttonEncoder.pressed()) {
+        if(stateIsNew) {
+            initSetStartTime(&rtc);
+            stateIsNew = false;
+        }
+        finishStartTimeSet(&rtc);
+        changeState(STATE_COUNTDOWN);
+    }
+}
+
+void handleStateCountdown(int8_t* encoderMovement) {
+    blinkCountdownLED();
+    if(stateIsNew) {
+        stateIsNew = false;
+        digitalWrite(PIN_LED_COLD, HIGH);
+    }
+    if(*encoderMovement) {
+        setStartTime(getEncoderAcceleratedRelativeMovement(*encoderMovement));
+        *encoderMovement = 0;
+        printStartTime();
+    }
+    const uint32_t currentMillis = millis();
+    if(currentMillis - previousTickTime > 1000) {
+        printTimeLeftInCountdown(&rtc);
+        previousTickTime = currentMillis;
+    }
+    if (rtc.now() >= getStartTime()) {
+        changeState(STATE_PROOFING);
+    }
+}
+
+void handleStateProofing() {
+    if(stateIsNew) {
+        stateIsNew = false;
+        Serial.println("Start heating!!!");
+        digitalWrite(LED_BUILTIN, LOW);
+        digitalWrite(PIN_LED_PROOFING, HIGH);
+        digitalWrite(PIN_LED_COLD, LOW);
+        digitalWrite(PIN_LED_HOT, HIGH);
+    }
+    const uint32_t currentMillis = millis();
+    if(currentMillis - previousTickTime > 1000) {
+        printTimeProofing(&rtc);
+        if (getTemperature() < proofingTemperature - ACCEPTABLE_DELTA_TEMPERATURE) {
+
+        }
+        previousTickTime = currentMillis;
     }
 }
