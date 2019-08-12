@@ -95,11 +95,26 @@ void handleButtonSetProofingTemperature(int8_t* encoderMovement) {
     }
 }
 
+void handleButtonSetTime(int8_t* encoderMovement) {
+    if(buttonSetTime.pressed()) {
+        initSetTime(&rtc);
+    }
+    else if(buttonSetTime.read() == Button::PRESSED && *encoderMovement) {
+        setTime(getEncoderAcceleratedRelativeMovement(*encoderMovement));
+        printTempTime();
+        *encoderMovement = 0;
+    }
+    else if (buttonSetTime.released()) {
+        finishTimeSet(&rtc);
+    }
+}
+
 void loop() {
     int8_t encoderMovement = getEncoderRelativeMovement(&encoder);
 
     handleButtonSetLowTemp(&encoderMovement);
     handleButtonSetProofingTemperature(&encoderMovement);
+    handleButtonSetTime(&encoderMovement);
 
     stateMachineReact(&encoderMovement);
 

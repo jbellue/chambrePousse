@@ -4,6 +4,7 @@
 #include <Arduino.h>
 
 typedef enum {
+    STATE_STARTUP,
     STATE_WAITING,
     STATE_TIME_UNSET,
     STATE_COUNTDOWN,

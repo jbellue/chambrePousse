@@ -1,9 +1,10 @@
 #include <stateMachine.h>
 
 bool stateHasChanged = false;
-State_t state;
+State_t state = STATE_STARTUP;
 
 StateMachine_t stateMachine[] = {
+    {STATE_STARTUP,    NULL,               NULL},
     {STATE_WAITING,    NULL,               stateWaitingAct},
     {STATE_TIME_UNSET, NULL,               stateTimeUnsetAct},
     {STATE_COUNTDOWN,  stateCountdownInit, stateCountdownAct},
@@ -21,6 +22,9 @@ void runIfNewState(void(*functionToRun)()) {
 
 void printStateToSerial() {
     switch(state) {
+        case STATE_STARTUP:
+            Serial.print("STARTUP");
+            break;
         case STATE_WAITING:
             Serial.print("WAITING");
             break;
