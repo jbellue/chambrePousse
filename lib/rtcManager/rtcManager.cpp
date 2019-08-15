@@ -91,7 +91,3 @@ void RTCManager::finishStartTimeSet() {
         _startTime = now;
     }
 }
-
-DateTime RTCManager::getStartTime() {
-    return _startTime;
-}

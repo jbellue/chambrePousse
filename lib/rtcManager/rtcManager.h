@@ -1,7 +1,6 @@
 #ifndef RTC_MANAGER_H
 #define RTC_MANAGER_H
 
-#include <Arduino.h>
 #include <RTClib.h>
 
 class RTCManager {
@@ -31,9 +30,6 @@ class RTCManager {
 
         void finishTimeSet();
         void finishStartTimeSet();
-
-        DateTime getStartTime();
 };
-
 
 #endif
