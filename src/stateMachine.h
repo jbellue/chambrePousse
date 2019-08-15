@@ -15,22 +15,22 @@ typedef enum {
 typedef struct {
     State_t State;
     void (*init)();
-    void (*act)(int8_t*);
+    void (*act)(const int8_t);
 } StateMachine_t;
 
 void stateWaitingInit();
-void stateWaitingAct(int8_t*);
+void stateWaitingAct(const int8_t);
 void stateTimeUnsetInit();
-void stateTimeUnsetAct(int8_t*);
+void stateTimeUnsetAct(const int8_t);
 void stateCountdownInit();
-void stateCountdownAct(int8_t*);
+void stateCountdownAct(const int8_t);
 void stateProofingInit();
-void stateProofingAct(int8_t*);
+void stateProofingAct(const int8_t);
 
 void printStateToSerial();
 void changeState(State_t newState);
 
-void stateMachineReact(int8_t*);
+void stateMachineReact(const int8_t);
 
 void runIfNewState(void(*)());
 #endif

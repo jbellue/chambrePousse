@@ -57,6 +57,6 @@ void changeState(State_t newState) {
     }
 }
 
-void stateMachineReact(int8_t* encoderMovement) {
+void stateMachineReact(const int8_t encoderMovement) {
     (*stateMachine[state].act)(encoderMovement);
 }

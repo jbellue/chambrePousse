@@ -130,11 +130,10 @@ void stateWaitingInit() {
     Serial.println("Setting the start time");
 }
 
-void stateWaitingAct(int8_t* encoderMovement) {
-    if(*encoderMovement) {
+void stateWaitingAct(const int8_t encoderMovement) {
+    if(encoderMovement) {
         runIfNewState(stateWaitingInit);
-        rtcManager.setStartTime(encoder.getAcceleratedRelativeMovement(*encoderMovement));
-        *encoderMovement = 0;
+        rtcManager.setStartTime(encoder.getAcceleratedRelativeMovement(encoderMovement));
         rtcManager.printStartTime();
     }
     else if (buttonEncoder.pressed()) {
@@ -147,12 +146,11 @@ void stateWaitingAct(int8_t* encoderMovement) {
 void stateTimeUnsetInit() {
     rtcManager.initSetTime();
 }
-void stateTimeUnsetAct(int8_t* encoderMovement){
-    if(*encoderMovement) {
+void stateTimeUnsetAct(const int8_t encoderMovement){
+    if(encoderMovement) {
         runIfNewState(stateTimeUnsetInit);
-        rtcManager.setTime(encoder.getAcceleratedRelativeMovement(*encoderMovement));
+        rtcManager.setTime(encoder.getAcceleratedRelativeMovement(encoderMovement));
         rtcManager.printTempTime();
-        *encoderMovement = 0;
     }
     else if (buttonEncoder.pressed()) {
         runIfNewState(stateTimeUnsetInit);
@@ -165,11 +163,10 @@ void stateTimeUnsetAct(int8_t* encoderMovement){
 void stateCountdownInit() {
     digitalWrite(PIN_LED_COLD, HIGH);
 }
-void stateCountdownAct(int8_t* encoderMovement) {
+void stateCountdownAct(const int8_t encoderMovement) {
     blinkCountdownLED();
-    if(*encoderMovement) {
-        rtcManager.setStartTime(encoder.getAcceleratedRelativeMovement(*encoderMovement));
-        *encoderMovement = 0;
+    if(encoderMovement) {
+        rtcManager.setStartTime(encoder.getAcceleratedRelativeMovement(encoderMovement));
         rtcManager.printStartTime();
     }
     const uint32_t currentMillis = millis();
@@ -182,7 +179,7 @@ void stateCountdownAct(int8_t* encoderMovement) {
     }
 }
 
-void stateProofingAct(int8_t* encoderMovement) {
+void stateProofingAct(int8_t encoderMovement) {
     (void) encoderMovement; // unused parameter...
     const uint32_t currentMillis = millis();
     if(currentMillis - previousTickTime > 1000) {
