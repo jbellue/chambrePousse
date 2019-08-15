@@ -2,13 +2,10 @@
 #include <Encoder.h>
 #include <encoderData.h>
 #include <stateMachine.h>
-#include <RTClib.h>
-#include <timeUtils.h>
+#include <rtcManager.h>
 #include <Button.h>
 #include <limitTemperature.h>
 #include <main.h>
-
-RTC_DS3231 rtc;
 
 // Use pins 2 and 3 because they're the only two with
 // interrupt on the nano
@@ -31,6 +28,7 @@ Button buttonSetLowTemp(PIN_BTN_SET_LOW_TEMP);
 Button buttonSetProofingTemperature(PIN_BTN_SET_HIGH_TEMP);
 
 LimitTemperature limitTemperature;
+RTCManager rtcManager;
 
 uint32_t previousMillis = 0;
 uint32_t previousTickTime = 0;
@@ -51,7 +49,7 @@ void setup() {
 
     limitTemperature.init();
 
-    if (initRTC(&rtc)) {
+    if (rtcManager.init()) {
         changeState(STATE_WAITING);
     }
     else {
@@ -82,15 +80,15 @@ void handleButtonSetProofingTemperature(int8_t* encoderMovement) {
 
 void handleButtonSetTime(int8_t* encoderMovement) {
     if(buttonSetTime.pressed()) {
-        initSetTime(&rtc);
+        rtcManager.initSetTime();
     }
     else if(buttonSetTime.read() == Button::PRESSED && *encoderMovement) {
-        setTime(getEncoderAcceleratedRelativeMovement(*encoderMovement));
-        printTempTime();
+        rtcManager.setTime(getEncoderAcceleratedRelativeMovement(*encoderMovement));
+        rtcManager.printTempTime();
         *encoderMovement = 0;
     }
     else if (buttonSetTime.released()) {
-        finishTimeSet(&rtc);
+        rtcManager.finishTimeSet();
     }
 }
 
@@ -105,7 +103,7 @@ void loop() {
 
     const uint32_t currentMillis = millis();
     if(currentMillis - previousMillis > 2000) {
-        printRTCTime(&rtc);
+        rtcManager.printRTCTime();
         Serial.print(": ");
         printStateToSerial();
         Serial.println("");
@@ -114,7 +112,7 @@ void loop() {
 }
 
 float getTemperature() {
-    return rtc.getTemperature();
+    return 12.35;
 }
 
 void blinkCountdownLED() {
@@ -128,37 +126,37 @@ void blinkCountdownLED() {
 }
 
 void stateWaitingInit() {
-    initSetStartTime(&rtc);
+    rtcManager.initSetStartTime();
     Serial.println("Setting the start time");
 }
 
 void stateWaitingAct(int8_t* encoderMovement) {
     if(*encoderMovement) {
         runIfNewState(stateWaitingInit);
-        setStartTime(getEncoderAcceleratedRelativeMovement(*encoderMovement));
+        rtcManager.setStartTime(getEncoderAcceleratedRelativeMovement(*encoderMovement));
         *encoderMovement = 0;
-        printStartTime();
+        rtcManager.printStartTime();
     }
     else if (buttonEncoder.pressed()) {
         runIfNewState(stateWaitingInit);
-        finishStartTimeSet(&rtc);
+        rtcManager.finishStartTimeSet();
         changeState(STATE_COUNTDOWN);
     }
 }
 
 void stateTimeUnsetInit() {
-    initSetTime(&rtc);
+    rtcManager.initSetTime();
 }
 void stateTimeUnsetAct(int8_t* encoderMovement){
     if(*encoderMovement) {
         runIfNewState(stateTimeUnsetInit);
-        setTime(getEncoderAcceleratedRelativeMovement(*encoderMovement));
-        printTempTime();
+        rtcManager.setTime(getEncoderAcceleratedRelativeMovement(*encoderMovement));
+        rtcManager.printTempTime();
         *encoderMovement = 0;
     }
     else if (buttonEncoder.pressed()) {
         runIfNewState(stateTimeUnsetInit);
-        finishTimeSet(&rtc);
+        rtcManager.finishTimeSet();
         changeState(STATE_WAITING);
     }
 }
@@ -170,16 +168,16 @@ void stateCountdownInit() {
 void stateCountdownAct(int8_t* encoderMovement) {
     blinkCountdownLED();
     if(*encoderMovement) {
-        setStartTime(getEncoderAcceleratedRelativeMovement(*encoderMovement));
+        rtcManager.setStartTime(getEncoderAcceleratedRelativeMovement(*encoderMovement));
         *encoderMovement = 0;
-        printStartTime();
+        rtcManager.printStartTime();
     }
     const uint32_t currentMillis = millis();
     if(currentMillis - previousTickTime > 1000) {
-        printTimeLeftInCountdown(&rtc);
+        rtcManager.printTimeLeftInCountdown();
         previousTickTime = currentMillis;
     }
-    if (rtc.now() >= getStartTime()) {
+    if (rtcManager.now() >= rtcManager.getStartTime()) {
         changeState(STATE_PROOFING);
     }
 }
@@ -188,7 +186,7 @@ void stateProofingAct(int8_t* encoderMovement) {
     (void) encoderMovement; // unused parameter...
     const uint32_t currentMillis = millis();
     if(currentMillis - previousTickTime > 1000) {
-        printTimeProofing(&rtc);
+        rtcManager.printTimeProofing();
         const float currentTemperature = getTemperature();
         if(limitTemperature.proofingTemperatureTooLow(currentTemperature)) {
             // switch heater on
