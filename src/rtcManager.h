@@ -13,7 +13,7 @@ class RTCManager {
     public:
         bool init();
 
-        DateTime now() { return _rtc.now(); };
+        bool countdownElapsed();
         void printTempTime();
         void printStartTime();
         void printTimeLeftInCountdown();

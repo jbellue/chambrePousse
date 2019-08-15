@@ -177,7 +177,7 @@ void stateCountdownAct(int8_t* encoderMovement) {
         rtcManager.printTimeLeftInCountdown();
         previousTickTime = currentMillis;
     }
-    if (rtcManager.now() >= rtcManager.getStartTime()) {
+    if (rtcManager.countdownElapsed()) {
         changeState(STATE_PROOFING);
     }
 }

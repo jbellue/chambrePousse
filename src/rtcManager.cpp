@@ -9,6 +9,9 @@ bool RTCManager::init() {
     return !_rtc.lostPower();
 }
 
+bool RTCManager::countdownElapsed() {
+        return _rtc.now() >= _startTime;
+}
 void RTCManager::printTempTime() {
     char timeBuffer[19];
     sprintf(timeBuffer, "New time: %d:%02d:00", _newTimeHours, _newTimeMinutes);
