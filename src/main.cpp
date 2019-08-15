@@ -58,48 +58,62 @@ void setup() {
     }
 }
 
-void handleButtonSetLowTemp(int8_t* encoderMovement) {
-    if(buttonSetLowTemp.read() == Button::PRESSED && *encoderMovement) {
-        limitTemperature.setLowTemp(*encoderMovement);
-        *encoderMovement = 0;
+bool handleButtonSetLowTemp(const int8_t encoderMovement) {
+    bool hasActed = false;
+    if(buttonSetLowTemp.read() == Button::PRESSED && encoderMovement) {
+        limitTemperature.setLowTemp(encoderMovement);
+        hasActed = true;
     }
     else if (buttonSetLowTemp.released()) {
         limitTemperature.storeLowTemp();
+        hasActed = true;
     }
+    return hasActed;
 }
 
-void handleButtonSetProofingTemperature(int8_t* encoderMovement) {
-    if(buttonSetProofingTemperature.read() == Button::PRESSED && *encoderMovement) {
-        limitTemperature.setProofingTemperature(*encoderMovement);
-        *encoderMovement = 0;
+bool handleButtonSetProofingTemperature(const int8_t encoderMovement) {
+    bool hasActed = false;
+    if(buttonSetProofingTemperature.read() == Button::PRESSED && encoderMovement) {
+        limitTemperature.setProofingTemperature(encoderMovement);
+        hasActed = true;
     }
     else if (buttonSetProofingTemperature.released()) {
         limitTemperature.storeProofingTemperature();
+        hasActed = true;
     }
+    return hasActed;
 }
 
-void handleButtonSetTime(int8_t* encoderMovement) {
+bool handleButtonSetTime(const int8_t encoderMovement) {
+    bool hasActed = false;
     if(buttonSetTime.pressed()) {
         rtcManager.initSetTime();
+        hasActed = true;
     }
-    else if(buttonSetTime.read() == Button::PRESSED && *encoderMovement) {
-        rtcManager.setTime(encoder.getAcceleratedRelativeMovement(*encoderMovement));
+    else if(buttonSetTime.read() == Button::PRESSED && encoderMovement) {
+        rtcManager.setTime(encoder.getAcceleratedRelativeMovement(encoderMovement));
         rtcManager.printTempTime();
-        *encoderMovement = 0;
+        hasActed = true;
     }
     else if (buttonSetTime.released()) {
         rtcManager.finishTimeSet();
+        hasActed = true;
     }
+    return hasActed;
 }
 
 void loop() {
-    int8_t encoderMovement = encoder.getRelativeMovement();
-
-    handleButtonSetLowTemp(&encoderMovement);
-    handleButtonSetProofingTemperature(&encoderMovement);
-    handleButtonSetTime(&encoderMovement);
-
-    stateMachineReact(&encoderMovement);
+    const int8_t encoderMovement = encoder.getRelativeMovement();
+    bool encoderValueUsed = handleButtonSetLowTemp(encoderMovement);
+    if (!encoderValueUsed) {
+        encoderValueUsed = handleButtonSetProofingTemperature(encoderMovement);
+    }
+    if (!encoderValueUsed) {
+        encoderValueUsed = handleButtonSetTime(encoderMovement);
+    }
+    if (!encoderValueUsed) {
+        stateMachineReact(encoderMovement);
+    }
 
     const uint32_t currentMillis = millis();
     if(currentMillis - previousMillis > 2000) {
