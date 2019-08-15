@@ -1,6 +1,6 @@
 #include <Arduino.h>
 #include <Encoder.h>
-#include <encoderData.h>
+#include <simplifiedEncoder.h>
 #include <stateMachine.h>
 #include <rtcManager.h>
 #include <Button.h>
@@ -11,7 +11,7 @@
 // interrupt on the nano
 #define ENCODER_PIN_A 2
 #define ENCODER_PIN_B 3
-Encoder encoder(ENCODER_PIN_A, ENCODER_PIN_B);
+SimplifiedEncoder encoder(ENCODER_PIN_A, ENCODER_PIN_B);
 
 #define PIN_BTN_ENCODER 4
 #define PIN_BTN_SET_TIME 5
@@ -83,7 +83,7 @@ void handleButtonSetTime(int8_t* encoderMovement) {
         rtcManager.initSetTime();
     }
     else if(buttonSetTime.read() == Button::PRESSED && *encoderMovement) {
-        rtcManager.setTime(getEncoderAcceleratedRelativeMovement(*encoderMovement));
+        rtcManager.setTime(encoder.getAcceleratedRelativeMovement(*encoderMovement));
         rtcManager.printTempTime();
         *encoderMovement = 0;
     }
@@ -93,7 +93,7 @@ void handleButtonSetTime(int8_t* encoderMovement) {
 }
 
 void loop() {
-    int8_t encoderMovement = getEncoderRelativeMovement(&encoder);
+    int8_t encoderMovement = encoder.getRelativeMovement();
 
     handleButtonSetLowTemp(&encoderMovement);
     handleButtonSetProofingTemperature(&encoderMovement);
@@ -133,7 +133,7 @@ void stateWaitingInit() {
 void stateWaitingAct(int8_t* encoderMovement) {
     if(*encoderMovement) {
         runIfNewState(stateWaitingInit);
-        rtcManager.setStartTime(getEncoderAcceleratedRelativeMovement(*encoderMovement));
+        rtcManager.setStartTime(encoder.getAcceleratedRelativeMovement(*encoderMovement));
         *encoderMovement = 0;
         rtcManager.printStartTime();
     }
@@ -150,7 +150,7 @@ void stateTimeUnsetInit() {
 void stateTimeUnsetAct(int8_t* encoderMovement){
     if(*encoderMovement) {
         runIfNewState(stateTimeUnsetInit);
-        rtcManager.setTime(getEncoderAcceleratedRelativeMovement(*encoderMovement));
+        rtcManager.setTime(encoder.getAcceleratedRelativeMovement(*encoderMovement));
         rtcManager.printTempTime();
         *encoderMovement = 0;
     }
@@ -168,7 +168,7 @@ void stateCountdownInit() {
 void stateCountdownAct(int8_t* encoderMovement) {
     blinkCountdownLED();
     if(*encoderMovement) {
-        rtcManager.setStartTime(getEncoderAcceleratedRelativeMovement(*encoderMovement));
+        rtcManager.setStartTime(encoder.getAcceleratedRelativeMovement(*encoderMovement));
         *encoderMovement = 0;
         rtcManager.printStartTime();
     }
