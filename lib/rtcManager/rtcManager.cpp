@@ -58,7 +58,7 @@ void RTCManager::initSetStartTime() {
     _startTime = _rtc.now();
 }
 
-void RTCManager::setTime(int8_t diff) {
+void RTCManager::setTime(const int8_t diff) {
     _newTimeMinutes += diff;
     if (_newTimeMinutes >= 60) {
         _newTimeMinutes = 0;
@@ -76,7 +76,7 @@ void RTCManager::setTime(int8_t diff) {
     }
 }
 
-void RTCManager::setStartTime(int8_t diff) {
+void RTCManager::setStartTime(const int8_t diff) {
     _startTime = _startTime + TimeSpan(diff * 60);
 }
 

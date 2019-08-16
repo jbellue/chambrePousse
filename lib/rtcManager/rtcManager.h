@@ -24,9 +24,9 @@ class RTCManager {
 
         void initSetStartTime();
 
-        void setTime(int8_t diff);
+        void setTime(const int8_t diff);
 
-        void setStartTime(int8_t diff);
+        void setStartTime(const int8_t diff);
 
         void finishTimeSet();
         void finishStartTimeSet();
