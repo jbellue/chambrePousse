@@ -5,7 +5,16 @@
 #include <rtcManager.h>
 #include <Button.h>
 #include <limitTemperature.h>
+#include <TM1637Display.h>
 #include <main.h>
+
+
+#define TEMP_CLK 16
+#define TEMP_DIO 17
+#define CLOCK_CLK 18
+#define CLOCK_DIO 19
+TM1637Display temperatureDisplay(TEMP_CLK, TEMP_DIO);
+TM1637Display clockDisplay(CLOCK_CLK, CLOCK_DIO);
 
 // Use pins 2 and 3 because they're the only two with
 // interrupt on the nano
@@ -75,6 +84,10 @@ bool handleButtonSetProofingTemperature(const int8_t encoderMovement) {
     bool hasActed = false;
     if(buttonSetProofingTemperature.read() == Button::PRESSED && encoderMovement) {
         limitTemperature.setProofingTemperature(encoderMovement);
+        const int8_t temperature = limitTemperature.getProofingTemperature();
+        temperatureDisplay.showNumberDec(temperature);
+        Serial.print("Proofing temperature: ");
+        Serial.println(temperature);
         hasActed = true;
     }
     else if (buttonSetProofingTemperature.released()) {
@@ -92,7 +105,10 @@ bool handleButtonSetTime(const int8_t encoderMovement) {
     }
     else if(buttonSetTime.read() == Button::PRESSED && encoderMovement) {
         rtcManager.setTime(encoder.getAcceleratedRelativeMovement(encoderMovement));
-        rtcManager.printTempTime();
+        const uint16_t tempTime = rtcManager.getTempTime();
+        clockDisplay.showNumberDecEx(tempTime, 0b01000000);
+        Serial.print("New time: ");
+        Serial.println(tempTime);
         hasActed = true;
     }
     else if (buttonSetTime.released()) {
@@ -117,7 +133,9 @@ void loop() {
 
     const uint32_t currentMillis = millis();
     if(currentMillis - previousMillis > 2000) {
-        rtcManager.printRTCTime();
+        const uint16_t rtcTime = rtcManager.getRTCTime();
+        clockDisplay.showNumberDecEx(rtcTime, 0b01000000);
+        Serial.print(rtcTime);
         Serial.print(": ");
         printStateToSerial();
         Serial.println("");
@@ -148,7 +166,10 @@ void stateWaitingAct(const int8_t encoderMovement) {
     if(encoderMovement) {
         runIfNewState(stateWaitingInit);
         rtcManager.setStartTime(encoder.getAcceleratedRelativeMovement(encoderMovement));
-        rtcManager.printStartTime();
+        const uint16_t newStartTime = rtcManager.getStartTime();
+        clockDisplay.showNumberDecEx(newStartTime, 0b01000000);
+        Serial.print("New start time ");
+        Serial.println(newStartTime);
     }
     else if (buttonEncoder.pressed()) {
         runIfNewState(stateWaitingInit);
@@ -164,7 +185,9 @@ void stateTimeUnsetAct(const int8_t encoderMovement){
     if(encoderMovement) {
         runIfNewState(stateTimeUnsetInit);
         rtcManager.setTime(encoder.getAcceleratedRelativeMovement(encoderMovement));
-        rtcManager.printTempTime();
+        const uint16_t tempTime = rtcManager.getTempTime();
+        clockDisplay.showNumberDecEx(tempTime, 0b01000000);
+        Serial.println(tempTime);
     }
     else if (buttonEncoder.pressed()) {
         runIfNewState(stateTimeUnsetInit);
@@ -181,11 +204,16 @@ void stateCountdownAct(const int8_t encoderMovement) {
     blinkCountdownLED();
     if(encoderMovement) {
         rtcManager.setStartTime(encoder.getAcceleratedRelativeMovement(encoderMovement));
-        rtcManager.printStartTime();
+        const uint16_t startTime = rtcManager.getStartTime();
+        clockDisplay.showNumberDecEx(startTime, 0b01000000);
+        Serial.println(startTime);
     }
     const uint32_t currentMillis = millis();
     if(currentMillis - previousTickTime > 1000) {
-        rtcManager.printTimeLeftInCountdown();
+        const uint16_t timeLeft = rtcManager.getTimeLeftInCountdown();
+        clockDisplay.showNumberDecEx(timeLeft, 0b01000000);
+        Serial.print("Time left: ");
+        Serial.println(timeLeft);
         previousTickTime = currentMillis;
     }
     if (rtcManager.countdownElapsed()) {
@@ -197,7 +225,10 @@ void stateProofingAct(int8_t encoderMovement) {
     (void) encoderMovement; // unused parameter...
     const uint32_t currentMillis = millis();
     if(currentMillis - previousTickTime > 1000) {
-        rtcManager.printTimeProofing();
+        const uint16_t timeProofing = rtcManager.getTimeProofing();
+        clockDisplay.showNumberDecEx(timeProofing, 0b01000000);
+        Serial.print("Time proofing: ");
+        Serial.println(timeProofing);
         const float currentTemperature = getTemperature();
         if(limitTemperature.proofingTemperatureTooLow(currentTemperature)) {
             // switch heater on
