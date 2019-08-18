@@ -39,7 +39,6 @@ Button buttonSetProofingTemperature(PIN_BTN_SET_HIGH_TEMP);
 LimitTemperature limitTemperature;
 RTCManager rtcManager;
 
-uint32_t previousMillis = 0;
 uint32_t previousTickTime = 0;
 uint32_t lastBlinkingTime = 0;
 
@@ -135,17 +134,6 @@ void loop() {
     if (!encoderValueUsed) {
         stateMachineReact(encoderMovement);
     }
-
-    const uint32_t currentMillis = millis();
-    if(currentMillis - previousMillis > 2000) {
-        const uint16_t rtcTime = rtcManager.getRTCTime();
-        displayTime(rtcTime);
-        Serial.print(rtcTime);
-        Serial.print(": ");
-        printStateToSerial();
-        Serial.println("");
-        previousMillis = currentMillis;
-    }
 }
 
 float getTemperature() {
@@ -180,6 +168,16 @@ void stateWaitingAct(const int8_t encoderMovement) {
         runIfNewState(stateWaitingInit);
         rtcManager.finishStartTimeSet();
         changeState(STATE_COUNTDOWN);
+    }
+    const uint32_t currentMillis = millis();
+    if(currentMillis - previousTickTime > 2000) {
+        const uint16_t rtcTime = rtcManager.getRTCTime();
+        displayTime(rtcTime);
+        Serial.print(rtcTime);
+        Serial.print(": ");
+        printStateToSerial();
+        Serial.println("");
+        previousTickTime = currentMillis;
     }
 }
 

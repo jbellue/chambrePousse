@@ -9,4 +9,6 @@ void blinkCountdownLED();
 
 void loop();
 
+void displayTime(const uint16_t time);
+
 #endif
