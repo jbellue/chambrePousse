@@ -106,7 +106,7 @@ bool handleButtonSetTime(const int8_t encoderMovement) {
     else if(buttonSetTime.read() == Button::PRESSED && encoderMovement) {
         rtcManager.setTime(encoder.getAcceleratedRelativeMovement(encoderMovement));
         const uint16_t tempTime = rtcManager.getTempTime();
-        clockDisplay.showNumberDecEx(tempTime, 0b01000000);
+        displayTime(tempTime);
         Serial.print("New time: ");
         Serial.println(tempTime);
         hasActed = true;
@@ -116,6 +116,11 @@ bool handleButtonSetTime(const int8_t encoderMovement) {
         hasActed = true;
     }
     return hasActed;
+}
+
+void displayTime(const uint16_t time) {
+    const uint8_t dots = 0b01000000;
+    clockDisplay.showNumberDecEx(time, dots);
 }
 
 void loop() {
@@ -134,7 +139,7 @@ void loop() {
     const uint32_t currentMillis = millis();
     if(currentMillis - previousMillis > 2000) {
         const uint16_t rtcTime = rtcManager.getRTCTime();
-        clockDisplay.showNumberDecEx(rtcTime, 0b01000000);
+        displayTime(rtcTime);
         Serial.print(rtcTime);
         Serial.print(": ");
         printStateToSerial();
@@ -167,7 +172,7 @@ void stateWaitingAct(const int8_t encoderMovement) {
         runIfNewState(stateWaitingInit);
         rtcManager.setStartTime(encoder.getAcceleratedRelativeMovement(encoderMovement));
         const uint16_t newStartTime = rtcManager.getStartTime();
-        clockDisplay.showNumberDecEx(newStartTime, 0b01000000);
+        displayTime(newStartTime);
         Serial.print("New start time ");
         Serial.println(newStartTime);
     }
@@ -186,7 +191,7 @@ void stateTimeUnsetAct(const int8_t encoderMovement){
         runIfNewState(stateTimeUnsetInit);
         rtcManager.setTime(encoder.getAcceleratedRelativeMovement(encoderMovement));
         const uint16_t tempTime = rtcManager.getTempTime();
-        clockDisplay.showNumberDecEx(tempTime, 0b01000000);
+        displayTime(tempTime);
         Serial.println(tempTime);
     }
     else if (buttonEncoder.pressed()) {
@@ -205,13 +210,13 @@ void stateCountdownAct(const int8_t encoderMovement) {
     if(encoderMovement) {
         rtcManager.setStartTime(encoder.getAcceleratedRelativeMovement(encoderMovement));
         const uint16_t startTime = rtcManager.getStartTime();
-        clockDisplay.showNumberDecEx(startTime, 0b01000000);
+        displayTime(startTime);
         Serial.println(startTime);
     }
     const uint32_t currentMillis = millis();
     if(currentMillis - previousTickTime > 1000) {
         const uint16_t timeLeft = rtcManager.getTimeLeftInCountdown();
-        clockDisplay.showNumberDecEx(timeLeft, 0b01000000);
+        displayTime(timeLeft);
         Serial.print("Time left: ");
         Serial.println(timeLeft);
         previousTickTime = currentMillis;
@@ -226,7 +231,7 @@ void stateProofingAct(int8_t encoderMovement) {
     const uint32_t currentMillis = millis();
     if(currentMillis - previousTickTime > 1000) {
         const uint16_t timeProofing = rtcManager.getTimeProofing();
-        clockDisplay.showNumberDecEx(timeProofing, 0b01000000);
+        displayTime(timeProofing);
         Serial.print("Time proofing: ");
         Serial.println(timeProofing);
         const float currentTemperature = getTemperature();
