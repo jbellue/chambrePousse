@@ -13,7 +13,6 @@ void LimitTemperature::init() {
 }
 void LimitTemperature::setProofingTemperature(const int8_t difference) {
     _proofingTemperature += difference;
-    Serial.println(_proofingTemperature);
 }
 
 int8_t LimitTemperature::getProofingTemperature() {
@@ -26,7 +25,6 @@ void LimitTemperature::storeProofingTemperature() {
 
 void LimitTemperature::setLowTemp(const int8_t difference) {
     _lowTemp += difference;
-    Serial.println(_lowTemp);
 }
 
 int8_t LimitTemperature::getLowTemp() {
