@@ -13,13 +13,12 @@ class RTCManager {
         bool init();
 
         bool countdownElapsed();
-        void printTempTime();
-        void printStartTime();
-        void printTimeLeftInCountdown();
-        void printTimeProofing();
+        uint16_t getTempTime();
+        uint16_t getStartTime();
+        uint16_t getTimeLeftInCountdown();
+        uint16_t getTimeProofing();
+        uint16_t getRTCTime();
 
-
-        void printRTCTime();
         void initSetTime();
 
         void initSetStartTime();

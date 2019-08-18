@@ -12,40 +12,27 @@ bool RTCManager::init() {
 bool RTCManager::countdownElapsed() {
         return _rtc.now() >= _startTime;
 }
-void RTCManager::printTempTime() {
-    char timeBuffer[19];
-    sprintf(timeBuffer, "New time: %d:%02d:00", _newTimeHours, _newTimeMinutes);
-    Serial.println(timeBuffer);
+uint16_t RTCManager::getTempTime() {
+    return _newTimeHours * 100 + _newTimeMinutes;
 }
 
-void RTCManager::printStartTime() {
-    char timeBuffer[25];
-    sprintf(timeBuffer, "New start time: %d:%02d:%02d", _startTime.hour(), _startTime.minute(), _startTime.second());
-    Serial.println(timeBuffer);
+uint16_t RTCManager::getStartTime() {
+    return _startTime.hour() * 100 + _startTime.minute();
 }
 
-void RTCManager::printRTCTime() {
+uint16_t RTCManager::getRTCTime() {
     DateTime now = _rtc.now();
-    char timeBuffer[9];
-    sprintf(timeBuffer, "%d:%02d:%02d", now.hour(), now.minute(), now.second());
-    Serial.print(timeBuffer);
+    return now.hour() * 100 + now.minute();
 }
 
-void RTCManager::printTimeLeftInCountdown() {
+uint16_t RTCManager::getTimeLeftInCountdown() {
     TimeSpan timeLeft = _rtc.now() - _startTime;
-    const int8_t tsHours =   timeLeft.hours()   < 0 ? -1 * timeLeft.hours()  :timeLeft.hours();
-    const int8_t tsMinutes = timeLeft.minutes() < 0 ? -1 * timeLeft.minutes():timeLeft.minutes();
-    const int8_t tsSeconds = timeLeft.seconds() < 0 ? -1 * timeLeft.seconds():timeLeft.seconds();
-    char timeBuffer[20];
-    sprintf(timeBuffer, "Time left: %d:%02d:%02d", tsHours, tsMinutes, tsSeconds);
-    Serial.println(timeBuffer);
+    return abs(timeLeft.hours()) * 100 + abs(timeLeft.minutes());
 }
 
-void RTCManager::printTimeProofing() {
+uint16_t RTCManager::getTimeProofing() {
     TimeSpan timeProofing = _rtc.now() - _startTime;
-    char timeBuffer[24];
-    sprintf(timeBuffer, "Time proofing: %d:%02d:%02d", timeProofing.hours(), timeProofing.minutes(), timeProofing.seconds());
-    Serial.println(timeBuffer);
+    return abs(timeProofing.hours()) * 100 + abs(timeProofing.minutes());
 }
 
 void RTCManager::initSetTime() {
