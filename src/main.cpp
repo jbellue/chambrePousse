@@ -41,6 +41,7 @@ RTCManager rtcManager;
 
 uint32_t previousTickTime = 0;
 uint32_t lastBlinkingTime = 0;
+uint16_t displayedTime = 0;
 
 void setup() {
     Serial.begin(115200);
@@ -48,7 +49,6 @@ void setup() {
     buttonSetTime.begin();
     buttonSetLowTemp.begin();
     buttonSetProofingTemperature.begin();
-
 
     pinMode(PIN_LED_PROOFING, OUTPUT);
     pinMode(LED_BUILTIN, OUTPUT);
@@ -172,11 +172,14 @@ void stateWaitingAct(const int8_t encoderMovement) {
     const uint32_t currentMillis = millis();
     if(currentMillis - previousTickTime > 2000) {
         const uint16_t rtcTime = rtcManager.getRTCTime();
-        displayTime(rtcTime);
-        Serial.print(rtcTime);
-        Serial.print(": ");
-        printStateToSerial();
-        Serial.println("");
+        if (rtcTime != displayedTime) {
+            displayTime(rtcTime);
+            Serial.print(rtcTime);
+            Serial.print(": ");
+            printStateToSerial();
+            Serial.println("");
+            displayedTime = rtcTime;
+        }
         previousTickTime = currentMillis;
     }
 }
@@ -214,9 +217,12 @@ void stateCountdownAct(const int8_t encoderMovement) {
     const uint32_t currentMillis = millis();
     if(currentMillis - previousTickTime > 1000) {
         const uint16_t timeLeft = rtcManager.getTimeLeftInCountdown();
-        displayTime(timeLeft);
-        Serial.print("Time left: ");
-        Serial.println(timeLeft);
+        if (timeLeft != displayedTime) {
+            displayTime(timeLeft);
+            Serial.print("Time left: ");
+            Serial.println(timeLeft);
+            displayedTime = timeLeft;
+        }
         previousTickTime = currentMillis;
     }
     if (rtcManager.countdownElapsed()) {
@@ -229,9 +235,12 @@ void stateProofingAct(int8_t encoderMovement) {
     const uint32_t currentMillis = millis();
     if(currentMillis - previousTickTime > 1000) {
         const uint16_t timeProofing = rtcManager.getTimeProofing();
-        displayTime(timeProofing);
-        Serial.print("Time proofing: ");
-        Serial.println(timeProofing);
+        if (timeProofing != displayedTime) {
+            displayTime(timeProofing);
+            Serial.print("Time proofing: ");
+            Serial.println(timeProofing);
+            displayedTime = timeProofing;
+        }
         const float currentTemperature = getTemperature();
         if(limitTemperature.proofingTemperatureTooLow(currentTemperature)) {
             // switch heater on
