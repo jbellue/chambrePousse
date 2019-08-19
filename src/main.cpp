@@ -43,6 +43,8 @@ uint32_t previousTickTime = 0;
 uint32_t lastBlinkingTime = 0;
 uint16_t displayedTime = 0;
 
+uint8_t displayBrightness = 7;
+
 void setup() {
     Serial.begin(115200);
     buttonEncoder.begin();
@@ -117,6 +119,24 @@ bool handleButtonSetTime(const int8_t encoderMovement) {
     return hasActed;
 }
 
+bool handleSetBrightness(const int8_t encoderMovement) {
+    bool hasActed = false;
+    if(buttonSetProofingTemperature.read() == Button::PRESSED
+        && buttonSetLowTemp.read() == Button::PRESSED
+        && encoderMovement) {
+        displayBrightness = constrain(displayBrightness + encoderMovement, 0, 7);
+        Serial.println(displayBrightness);
+        clockDisplay.setBrightness(displayBrightness);
+        temperatureDisplay.setBrightness(displayBrightness);
+        analogWrite(PIN_LED_COLD, map(displayBrightness, 0, 7, 0, 127));
+        hasActed = true;
+    }
+    else if (buttonSetProofingTemperature.released() && buttonSetLowTemp.released()) {
+        hasActed = true;
+    }
+    return hasActed;
+}
+
 void displayTime(const uint16_t time) {
     const uint8_t dots = 0b01000000;
     clockDisplay.showNumberDecEx(time, dots);
@@ -124,7 +144,10 @@ void displayTime(const uint16_t time) {
 
 void loop() {
     const int8_t encoderMovement = encoder.getRelativeMovement();
-    bool encoderValueUsed = handleButtonSetLowTemp(encoderMovement);
+    bool encoderValueUsed = handleSetBrightness(encoderMovement);
+    if (!encoderValueUsed) {
+        handleButtonSetLowTemp(encoderMovement);
+    }
     if (!encoderValueUsed) {
         encoderValueUsed = handleButtonSetProofingTemperature(encoderMovement);
     }
