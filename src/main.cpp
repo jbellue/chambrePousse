@@ -27,6 +27,8 @@ SimplifiedEncoder encoder(ENCODER_PIN_A, ENCODER_PIN_B);
 #define PIN_BTN_SET_LOW_TEMP 6
 #define PIN_BTN_SET_HIGH_TEMP 7
 
+// Need to tweak the resistor values for the LEDs when I
+// actually get them to get consistent brightness
 #define PIN_LED_PROOFING 9
 #define PIN_LED_COLD 10
 #define PIN_LED_HOT 11
@@ -44,6 +46,7 @@ uint32_t lastBlinkingTime = 0;
 uint16_t displayedTime = 0;
 
 uint8_t displayBrightness = 7;
+const uint8_t brightnessLookupTable[8] = {0, 5, 14, 33, 64, 109, 172, 255};
 
 void setup() {
     Serial.begin(115200);
@@ -124,11 +127,18 @@ bool handleSetBrightness(const int8_t encoderMovement) {
     if(buttonSetProofingTemperature.read() == Button::PRESSED
         && buttonSetLowTemp.read() == Button::PRESSED
         && encoderMovement) {
+        // the displays expect values 0-7
         displayBrightness = constrain(displayBrightness + encoderMovement, 0, 7);
         Serial.println(displayBrightness);
         clockDisplay.setBrightness(displayBrightness);
         temperatureDisplay.setBrightness(displayBrightness);
-        analogWrite(PIN_LED_COLD, map(displayBrightness, 0, 7, 0, 127));
+
+        // PWM for the LEDs (0-255), but we don't want it linear...
+        // so we check the lookup table
+        const uint8_t ledBrightness = brightnessLookupTable[displayBrightness];
+        analogWrite(PIN_LED_COLD, ledBrightness;
+        analogWrite(PIN_LED_PROOFING, ledBrightness);
+        analogWrite(PIN_LED_HOT, ledBrightness);
         hasActed = true;
     }
     else if (buttonSetProofingTemperature.released() && buttonSetLowTemp.released()) {
