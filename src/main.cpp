@@ -6,6 +6,7 @@
 #include <Button.h>
 #include <limitTemperature.h>
 #include <TM1637Display.h>
+#include <LEDcontroller.h>
 #include <main.h>
 
 
@@ -30,8 +31,11 @@ SimplifiedEncoder encoder(ENCODER_PIN_A, ENCODER_PIN_B);
 // Need to tweak the resistor values for the LEDs when I
 // actually get them to get consistent brightness
 #define PIN_LED_PROOFING 9
+LED ledProofing(PIN_LED_PROOFING);
 #define PIN_LED_COLD 10
+LED ledCold(PIN_LED_COLD);
 #define PIN_LED_HOT 11
+LED ledHot(PIN_LED_HOT);
 
 Button buttonEncoder(PIN_BTN_ENCODER);
 Button buttonSetTime(PIN_BTN_SET_TIME);
@@ -46,7 +50,6 @@ uint32_t lastBlinkingTime = 0;
 uint16_t displayedTime = 0;
 
 uint8_t displayBrightness = 7;
-const uint8_t brightnessLookupTable[8] = {0, 5, 14, 33, 64, 109, 172, 255};
 
 void setup() {
     Serial.begin(115200);
@@ -55,10 +58,10 @@ void setup() {
     buttonSetLowTemp.begin();
     buttonSetProofingTemperature.begin();
 
-    pinMode(PIN_LED_PROOFING, OUTPUT);
     pinMode(LED_BUILTIN, OUTPUT);
-    pinMode(PIN_LED_COLD, OUTPUT);
-    pinMode(PIN_LED_HOT, OUTPUT);
+    ledCold.init();
+    ledHot.init();
+    ledProofing.init();
 
     limitTemperature.init();
 
@@ -133,12 +136,9 @@ bool handleSetBrightness(const int8_t encoderMovement) {
         clockDisplay.setBrightness(displayBrightness);
         temperatureDisplay.setBrightness(displayBrightness);
 
-        // PWM for the LEDs (0-255), but we don't want it linear...
-        // so we check the lookup table
-        const uint8_t ledBrightness = brightnessLookupTable[displayBrightness];
-        analogWrite(PIN_LED_COLD, ledBrightness;
-        analogWrite(PIN_LED_PROOFING, ledBrightness);
-        analogWrite(PIN_LED_HOT, ledBrightness);
+        ledCold.setBrightness(displayBrightness);
+        ledHot.setBrightness(displayBrightness);
+        ledProofing.setBrightness(displayBrightness);
         hasActed = true;
     }
     else if (buttonSetProofingTemperature.released() && buttonSetLowTemp.released()) {
@@ -237,7 +237,7 @@ void stateTimeUnsetAct(const int8_t encoderMovement){
 
 
 void stateCountdownInit() {
-    digitalWrite(PIN_LED_COLD, HIGH);
+    ledCold.on();
 }
 void stateCountdownAct(const int8_t encoderMovement) {
     blinkCountdownLED();
@@ -288,7 +288,7 @@ void stateProofingAct(int8_t encoderMovement) {
 void stateProofingInit() {
     Serial.println("Start heating!!!");
     digitalWrite(LED_BUILTIN, LOW);
-    digitalWrite(PIN_LED_PROOFING, HIGH);
-    digitalWrite(PIN_LED_COLD, LOW);
-    digitalWrite(PIN_LED_HOT, HIGH);
+    ledCold.off();
+    ledProofing.on();
+    ledHot.on();
 }
