@@ -27,7 +27,7 @@ SimplifiedEncoder encoder(ENCODER_PIN_A, ENCODER_PIN_B);
 #define PIN_BTN_SET_LOW_TEMP 6
 #define PIN_BTN_SET_HIGH_TEMP 7
 
-#define PIN_LED_PROOFING 8
+#define PIN_LED_PROOFING 9
 #define PIN_LED_COLD 10
 #define PIN_LED_HOT 11
 
