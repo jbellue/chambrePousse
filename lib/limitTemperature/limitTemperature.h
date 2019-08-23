@@ -24,6 +24,8 @@ class LimitTemperature {
 
         bool proofingTemperatureTooLow(const float t);
         bool proofingTemperatureTooHigh(const float t);
+        bool lowTemperatureTooLow(const float t);
+        bool lowTemperatureTooHigh(const float t);
     private:
         int8_t _lowTemp;
         int8_t _proofingTemperature;

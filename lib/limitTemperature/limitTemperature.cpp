@@ -46,3 +46,11 @@ bool LimitTemperature::proofingTemperatureTooLow(const float t) {
 bool LimitTemperature::proofingTemperatureTooHigh(const float t) {
     return (t > _proofingTemperature + ACCEPTABLE_DELTA_TEMPERATURE);
 }
+
+bool LimitTemperature::lowTemperatureTooLow(const float t) {
+    return (t < _lowTemp - ACCEPTABLE_DELTA_TEMPERATURE);
+}
+
+bool LimitTemperature::lowTemperatureTooHigh(const float t) {
+    return (t > _lowTemp + ACCEPTABLE_DELTA_TEMPERATURE);
+}
