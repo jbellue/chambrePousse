@@ -183,6 +183,19 @@ void blinkCountdownLED() {
     }
 }
 
+void switchColdOn() {
+    ledCold.on();
+}
+void switchColdOff() {
+    ledCold.off();
+}
+void switchHotOn() {
+    ledHot.on();
+}
+void switchHotOff() {
+    ledHot.off();
+}
+
 void stateWaitingInit() {
     rtcManager.initSetStartTime();
     Serial.println("Setting the start time");
@@ -235,10 +248,6 @@ void stateTimeUnsetAct(const int8_t encoderMovement){
     }
 }
 
-
-void stateCountdownInit() {
-    ledCold.on();
-}
 void stateCountdownAct(const int8_t encoderMovement) {
     blinkCountdownLED();
     if(encoderMovement) {
@@ -249,6 +258,13 @@ void stateCountdownAct(const int8_t encoderMovement) {
     }
     const uint32_t currentMillis = millis();
     if(currentMillis - previousTickTime > 1000) {
+        const float currentTemperature = getTemperature();
+        if(limitTemperature.lowTemperatureTooLow(currentTemperature)) {
+            switchColdOff();
+        }
+        else if(limitTemperature.lowTemperatureTooHigh(currentTemperature)) {
+            switchColdOn();
+        }
         const uint16_t timeLeft = rtcManager.getTimeLeftInCountdown();
         if (timeLeft != displayedTime) {
             displayTime(timeLeft);
@@ -278,10 +294,10 @@ void stateProofingAct(int8_t encoderMovement) {
         }
         const float currentTemperature = getTemperature();
         if(limitTemperature.proofingTemperatureTooLow(currentTemperature)) {
-            // switch heater on
+            switchHotOn();
         }
         else if(limitTemperature.proofingTemperatureTooHigh(currentTemperature)) {
-            //switch heater off
+            switchHotOff();
         }
         previousTickTime = currentMillis;
     }
@@ -292,5 +308,4 @@ void stateProofingInit() {
     digitalWrite(LED_BUILTIN, LOW);
     ledCold.off();
     ledProofing.on();
-    ledHot.on();
 }
