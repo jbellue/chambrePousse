@@ -14,7 +14,6 @@ typedef enum {
 
 typedef struct {
     State_t State;
-    void (*init)();
     void (*act)(const int8_t);
 } StateMachine_t;
 
@@ -22,7 +21,6 @@ void stateWaitingInit();
 void stateWaitingAct(const int8_t);
 void stateTimeUnsetInit();
 void stateTimeUnsetAct(const int8_t);
-void stateCountdownInit();
 void stateCountdownAct(const int8_t);
 void stateProofingInit();
 void stateProofingAct(const int8_t);

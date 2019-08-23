@@ -4,11 +4,11 @@ bool stateHasChanged = false;
 State_t state = STATE_STARTUP;
 
 StateMachine_t stateMachine[] = {
-    {STATE_STARTUP,    NULL,               NULL},
-    {STATE_WAITING,    NULL,               stateWaitingAct},
-    {STATE_TIME_UNSET, NULL,               stateTimeUnsetAct},
-    {STATE_COUNTDOWN,  stateCountdownInit, stateCountdownAct},
-    {STATE_PROOFING,   stateProofingInit,  stateProofingAct}
+    {STATE_STARTUP,    NULL},
+    {STATE_WAITING,    stateWaitingAct},
+    {STATE_TIME_UNSET, stateTimeUnsetAct},
+    {STATE_COUNTDOWN,  stateCountdownAct},
+    {STATE_PROOFING,   stateProofingAct}
 };
 
 void runIfNewState(void(*functionToRun)()) {
@@ -51,9 +51,6 @@ void changeState(State_t newState) {
         Serial.print(" to state ");
         printStateToSerial();
         Serial.println("");
-        if ((*stateMachine[state].init)) {
-            (*stateMachine[state].init)();
-        }
     }
 }
 

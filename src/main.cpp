@@ -265,6 +265,8 @@ void stateCountdownAct(const int8_t encoderMovement) {
 
 void stateProofingAct(int8_t encoderMovement) {
     (void) encoderMovement; // unused parameter...
+    runIfNewState(stateProofingInit);
+
     const uint32_t currentMillis = millis();
     if(currentMillis - previousTickTime > 1000) {
         const uint16_t timeProofing = rtcManager.getTimeProofing();
