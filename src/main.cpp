@@ -68,7 +68,6 @@ void setup() {
         changeState(STATE_WAITING);
     }
     else {
-        Serial.println("RTC lost power, need to set the time!");
         changeState(STATE_TIME_UNSET);
     }
 }
@@ -233,6 +232,9 @@ void stateTimeUnsetInit() {
     rtcManager.initSetTime();
 }
 void stateTimeUnsetAct(const int8_t encoderMovement){
+    // TODO blink the display?
+    // Just blink all the dots ?
+    // Decide.
     if(encoderMovement) {
         runIfNewState(stateTimeUnsetInit);
         rtcManager.setTime(encoder.getAcceleratedRelativeMovement(encoderMovement));
@@ -303,7 +305,6 @@ void stateProofingAct(int8_t encoderMovement) {
 }
 
 void stateProofingInit() {
-    Serial.println("Start heating!!!");
     digitalWrite(LED_BUILTIN, LOW);
     ledCold.off();
     ledProofing.on();
