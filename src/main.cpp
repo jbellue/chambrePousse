@@ -1,5 +1,4 @@
 #include <Arduino.h>
-#include <Encoder.h>
 #include <simplifiedEncoder.h>
 #include <stateMachine.h>
 #include <rtcManager.h>
