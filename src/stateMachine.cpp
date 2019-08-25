@@ -1,4 +1,5 @@
 #include <stateMachine.h>
+#include <debug_macros.h>
 
 bool stateHasChanged = false;
 State_t state = STATE_STARTUP;
@@ -23,19 +24,19 @@ void runIfNewState(void(*functionToRun)()) {
 void printStateToSerial() {
     switch(state) {
         case STATE_STARTUP:
-            Serial.print("STARTUP");
+            DebugPrint("STARTUP");
             break;
         case STATE_WAITING:
-            Serial.print("WAITING");
+            DebugPrint("WAITING");
             break;
         case STATE_TIME_UNSET:
-            Serial.print("TIME_UNSET");
+            DebugPrint("TIME_UNSET");
             break;
         case STATE_COUNTDOWN:
-            Serial.print("COUNTDOWN");
+            DebugPrint("COUNTDOWN");
             break;
         case STATE_PROOFING:
-            Serial.print("PROOFING");
+            DebugPrint("PROOFING");
             break;
         default:
             break;
@@ -44,13 +45,13 @@ void printStateToSerial() {
 
 void changeState(State_t newState) {
     if (newState < State_t::NUM_STATE && newState != state) {
-        Serial.print("Going from state ");
+        DebugPrintFull("Going from state ");
         printStateToSerial();
         state = newState;
         stateHasChanged = true;
-        Serial.print(" to state ");
+        DebugPrint(" to state ");
         printStateToSerial();
-        Serial.println("");
+        DebugPrintln("");
     }
 }
 

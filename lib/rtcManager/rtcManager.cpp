@@ -1,12 +1,14 @@
 #include <rtcManager.h>
 
-bool RTCManager::init() {
+RTCManager::initReturn_t RTCManager::init() {
     if (!_rtc.begin()) {
-        Serial.println("Couldn't find RTC");
-        while (1);
+        return notFound;
     }
 
-    return !_rtc.lostPower();
+    if (_rtc.lostPower()) {
+        return lostPower;
+    }
+    return success;
 }
 
 bool RTCManager::countdownElapsed() {

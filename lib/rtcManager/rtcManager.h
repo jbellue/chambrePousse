@@ -10,7 +10,12 @@ class RTCManager {
         int8_t _newTimeHours = 12;
         DateTime _startTime;
     public:
-        bool init();
+        enum initReturn_t {
+            success,
+            lostPower,
+            notFound
+        };
+        initReturn_t init();
 
         bool countdownElapsed();
         uint16_t getTempTime();

@@ -1,3 +1,4 @@
+#include <debug_macros.h>
 #include <Arduino.h>
 #include <simplifiedEncoder.h>
 #include <stateMachine.h>
@@ -51,7 +52,7 @@ uint16_t displayedTime = 0;
 uint8_t displayBrightness = 7;
 
 void setup() {
-    Serial.begin(115200);
+    DebugPrintBegin(115200);
     buttonEncoder.begin();
     buttonSetTime.begin();
     buttonSetLowTemp.begin();
@@ -64,11 +65,19 @@ void setup() {
 
     limitTemperature.init();
 
-    if (rtcManager.init()) {
-        changeState(STATE_WAITING);
-    }
-    else {
-        changeState(STATE_TIME_UNSET);
+    switch(rtcManager.init()) {
+        case RTCManager::initReturn_t::success:
+            changeState(STATE_WAITING);
+            break;
+        case RTCManager::initReturn_t::lostPower:
+            changeState(STATE_TIME_UNSET);
+            break;
+        case RTCManager::initReturn_t::notFound:
+            DebugPrintlnFull("Couldn't find RTC module.");
+            // intentional fallthrough
+        default:
+            DebugPrintlnFull("Error while initialising RTC module. Aborting start.");
+            while(1);
     }
 }
 
@@ -91,8 +100,8 @@ bool handleButtonSetProofingTemperature(const int8_t encoderMovement) {
         limitTemperature.setProofingTemperature(encoderMovement);
         const int8_t temperature = limitTemperature.getProofingTemperature();
         temperatureDisplay.showNumberDec(temperature);
-        Serial.print("Proofing temperature: ");
-        Serial.println(temperature);
+        DebugPrintFull("Proofing temperature: ");
+        DebugPrintln(temperature);
         hasActed = true;
     }
     else if (buttonSetProofingTemperature.released()) {
@@ -112,8 +121,8 @@ bool handleButtonSetTime(const int8_t encoderMovement) {
         rtcManager.setTime(encoder.getAcceleratedRelativeMovement(encoderMovement));
         const uint16_t tempTime = rtcManager.getTempTime();
         displayTime(tempTime);
-        Serial.print("New time: ");
-        Serial.println(tempTime);
+        DebugPrintFull("New time: ");
+        DebugPrintln(tempTime);
         hasActed = true;
     }
     else if (buttonSetTime.released()) {
@@ -130,7 +139,7 @@ bool handleSetBrightness(const int8_t encoderMovement) {
         && encoderMovement) {
         // the displays expect values 0-7
         displayBrightness = constrain(displayBrightness + encoderMovement, 0, 7);
-        Serial.println(displayBrightness);
+        DebugPrintlnFull(displayBrightness);
         clockDisplay.setBrightness(displayBrightness);
         temperatureDisplay.setBrightness(displayBrightness);
 
@@ -196,7 +205,7 @@ void switchHotOff() {
 
 void stateWaitingInit() {
     rtcManager.initSetStartTime();
-    Serial.println("Setting the start time");
+    DebugPrintlnFull("Setting the start time");
 }
 
 void stateWaitingAct(const int8_t encoderMovement) {
@@ -205,8 +214,8 @@ void stateWaitingAct(const int8_t encoderMovement) {
         rtcManager.setStartTime(encoder.getAcceleratedRelativeMovement(encoderMovement));
         const uint16_t newStartTime = rtcManager.getStartTime();
         displayTime(newStartTime);
-        Serial.print("New start time ");
-        Serial.println(newStartTime);
+        DebugPrintFull("New start time ");
+        DebugPrintln(newStartTime);
     }
     else if (buttonEncoder.pressed()) {
         runIfNewState(stateWaitingInit);
@@ -218,10 +227,10 @@ void stateWaitingAct(const int8_t encoderMovement) {
         const uint16_t rtcTime = rtcManager.getRTCTime();
         if (rtcTime != displayedTime) {
             displayTime(rtcTime);
-            Serial.print(rtcTime);
-            Serial.print(": ");
+            DebugPrintFull(rtcTime);
+            DebugPrint(": ");
             printStateToSerial();
-            Serial.println("");
+            DebugPrintln("");
             displayedTime = rtcTime;
         }
         previousTickTime = currentMillis;
@@ -240,7 +249,7 @@ void stateTimeUnsetAct(const int8_t encoderMovement){
         rtcManager.setTime(encoder.getAcceleratedRelativeMovement(encoderMovement));
         const uint16_t tempTime = rtcManager.getTempTime();
         displayTime(tempTime);
-        Serial.println(tempTime);
+        DebugPrintlnFull(tempTime);
     }
     else if (buttonEncoder.pressed()) {
         runIfNewState(stateTimeUnsetInit);
@@ -255,7 +264,7 @@ void stateCountdownAct(const int8_t encoderMovement) {
         rtcManager.setStartTime(encoder.getAcceleratedRelativeMovement(encoderMovement));
         const uint16_t startTime = rtcManager.getStartTime();
         displayTime(startTime);
-        Serial.println(startTime);
+        DebugPrintlnFull(startTime);
     }
     const uint32_t currentMillis = millis();
     if(currentMillis - previousTickTime > 1000) {
@@ -269,8 +278,8 @@ void stateCountdownAct(const int8_t encoderMovement) {
         const uint16_t timeLeft = rtcManager.getTimeLeftInCountdown();
         if (timeLeft != displayedTime) {
             displayTime(timeLeft);
-            Serial.print("Time left: ");
-            Serial.println(timeLeft);
+            DebugPrintFull("Time left: ");
+            DebugPrintln(timeLeft);
             displayedTime = timeLeft;
         }
         previousTickTime = currentMillis;
@@ -289,8 +298,8 @@ void stateProofingAct(int8_t encoderMovement) {
         const uint16_t timeProofing = rtcManager.getTimeProofing();
         if (timeProofing != displayedTime) {
             displayTime(timeProofing);
-            Serial.print("Time proofing: ");
-            Serial.println(timeProofing);
+            DebugPrintFull("Time proofing: ");
+            DebugPrintln(timeProofing);
             displayedTime = timeProofing;
         }
         const float currentTemperature = getTemperature();
