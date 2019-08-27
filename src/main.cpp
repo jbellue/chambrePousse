@@ -4,11 +4,26 @@
 #include <stateMachine.h>
 #include <rtcManager.h>
 #include <Button.h>
+#include <OneWire.h>
+#include <DallasTemperature.h>
 #include <limitTemperature.h>
 #include <TM1637Display.h>
 #include <LEDcontroller.h>
 #include <main.h>
 
+
+#define ONE_WIRE_BUS 12
+
+// Resolution goes fom 9 to 12, with these values:
+//          Accuracy (°C)   Time to get a temperature (ms)
+//  9 bit   0.5             93.75
+// 10 bit   0.25            187.5
+// 11 bit   0.125           375
+// 12 bit   0.0625          750
+// So it's a trade-off... 
+#define THERMOMETER_RESOLUTION 11
+OneWire oneWire(ONE_WIRE_BUS);
+DallasTemperature thermometer(&oneWire);
 
 #define TEMP_CLK 16
 #define TEMP_DIO 17
@@ -64,6 +79,9 @@ void setup() {
     ledProofing.init();
 
     limitTemperature.init();
+
+    thermometer.begin();
+    thermometer.setResolution(THERMOMETER_RESOLUTION);
 
     switch(rtcManager.init()) {
         case RTCManager::initReturn_t::success:
@@ -177,7 +195,11 @@ void loop() {
 }
 
 float getTemperature() {
-    return 12.35;
+    thermometer.requestTemperatures();
+    const float temp = thermometer.getTempCByIndex(0);
+    DebugPrintFull("temperature: ");
+    DebugPrintln(temp);
+    return temp;
 }
 
 void blinkCountdownLED() {
