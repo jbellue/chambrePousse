@@ -63,6 +63,8 @@ RTCManager rtcManager;
 
 uint32_t previousTickTime = 0;
 uint32_t lastCountdownPatternUpdateTime = 0;
+#define TIME_BEFORE_MANUAL_TIMESET_UPDATE 1500
+uint32_t lastManualTimeChange = 0;
 uint32_t lastTemperatureUpdate = 0;
 uint8_t countdownPattern[] = {SEG_F, SEG_A, SEG_B, SEG_G, SEG_E, SEG_D, SEG_C, SEG_G};
 uint8_t countDownPatternIndex = 0;
@@ -290,6 +292,7 @@ void stateWaitingAct(const int8_t encoderMovement) {
         rtcManager.setStartTime(encoder.getAcceleratedRelativeMovement(encoderMovement));
         const uint16_t newStartTime = rtcManager.getStartTime();
         displayTime(newStartTime);
+        lastManualTimeChange = millis();
         DebugPrintFull("New start time ");
         DebugPrintln(newStartTime);
     }
@@ -299,7 +302,7 @@ void stateWaitingAct(const int8_t encoderMovement) {
         changeState(STATE_COUNTDOWN);
     }
     const uint32_t currentMillis = millis();
-    if(currentMillis - previousTickTime > 2000) {
+    if(currentMillis - lastManualTimeChange > TIME_BEFORE_MANUAL_TIMESET_UPDATE && currentMillis - previousTickTime > 2000) {
         const uint16_t rtcTime = rtcManager.getRTCTime();
         if (rtcTime != displayedTime) {
             displayTime(rtcTime);
@@ -338,11 +341,12 @@ void stateCountdownAct(const int8_t encoderMovement) {
         rtcManager.setStartTime(encoder.getAcceleratedRelativeMovement(encoderMovement));
         const uint16_t startTime = rtcManager.getStartTime();
         displayTime(startTime);
+        lastManualTimeChange = millis();
         DebugPrintlnFull(startTime);
     }
     else {
         const uint32_t currentMillis = millis();
-        if(currentMillis - lastCountdownPatternUpdateTime > 50) {
+        if(currentMillis - lastManualTimeChange > TIME_BEFORE_MANUAL_TIMESET_UPDATE && currentMillis - lastCountdownPatternUpdateTime > 50) {
             if(currentMillis - previousTickTime > 1000) {
                 if(limitTemperature.lowTemperatureTooLow(currentTemperature)) {
                     switchColdOff();
