@@ -25,10 +25,10 @@
 OneWire oneWire(ONE_WIRE_BUS);
 DallasTemperature thermometer(&oneWire);
 
-#define TEMP_CLK 16
-#define TEMP_DIO 17
-#define CLOCK_CLK 18
-#define CLOCK_DIO 19
+#define TEMP_CLK 14
+#define TEMP_DIO 15
+#define CLOCK_CLK 16
+#define CLOCK_DIO 17
 TM1637Display temperatureDisplay(TEMP_CLK, TEMP_DIO);
 TM1637Display clockDisplay(CLOCK_CLK, CLOCK_DIO);
 
