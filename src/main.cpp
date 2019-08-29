@@ -186,7 +186,10 @@ bool handleSetBrightness(const int8_t encoderMovement) {
 }
 
 void displayTime(const uint16_t time) {
-    clockDisplay.showNumberDecEx(time, 0b01000000);
+    if (time != displayedTime) {
+        clockDisplay.showNumberDecEx(time, 0b01000000);
+        displayedTime = time;
+    }
 }
 
 void displayTemperature(const float temp, bool forceRefresh, bool showDecimal) {
@@ -299,7 +302,6 @@ void stateWaitingAct(const int8_t encoderMovement) {
             DebugPrint(": ");
             printStateToSerial();
             DebugPrintln("");
-            displayedTime = rtcTime;
         }
         previousTickTime = currentMillis;
     }
@@ -332,7 +334,6 @@ void stateCountdownAct(const int8_t encoderMovement) {
         rtcManager.setStartTime(encoder.getAcceleratedRelativeMovement(encoderMovement));
         const uint16_t startTime = rtcManager.getStartTime();
         displayTime(startTime);
-        displayedTime = startTime;
         DebugPrintlnFull(startTime);
     }
     const uint32_t currentMillis = millis();
@@ -348,7 +349,6 @@ void stateCountdownAct(const int8_t encoderMovement) {
             displayTime(timeLeft);
             DebugPrintFull("Time left: ");
             DebugPrintln(timeLeft);
-            displayedTime = timeLeft;
         }
         previousTickTime = currentMillis;
     }
@@ -368,7 +368,6 @@ void stateProofingAct(int8_t encoderMovement) {
             displayTime(timeProofing);
             DebugPrintFull("Time proofing: ");
             DebugPrintln(timeProofing);
-            displayedTime = timeProofing;
         }
         if(limitTemperature.proofingTemperatureTooLow(currentTemperature)) {
             switchHotOn();
