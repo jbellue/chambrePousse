@@ -250,6 +250,7 @@ float getTemperature() {
 
 void showCountdownPattern() {
     clockDisplay.setSegments(&countdownPattern[countDownPatternIndex], 1, displayedTime > 959 ? 3 : 0);
+    countDownPatternIndex = (countDownPatternIndex + 1) & (sizeof(countdownPattern) / sizeof(countdownPattern[0]) - 1);
 }
 
 void switchColdOn() {
