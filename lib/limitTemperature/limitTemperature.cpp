@@ -28,7 +28,7 @@ void LimitTemperature::setLowTemp(const int8_t difference) {
 }
 
 int8_t LimitTemperature::getLowTemp() {
-    return _proofingTemperature;
+    return _lowTemp;
 }
 
 void LimitTemperature::storeLowTemp() {
