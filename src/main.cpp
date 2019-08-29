@@ -91,6 +91,7 @@ void setup() {
 
     thermometer.begin();
     thermometer.setResolution(THERMOMETER_RESOLUTION);
+    thermometer.setWaitForConversion(false);
 
     switch(rtcManager.init()) {
         case RTCManager::initReturn_t::success:
@@ -235,10 +236,11 @@ void loop() {
 }
 
 float getTemperature() {
-    thermometer.requestTemperatures();
     const float temp = thermometer.getTempCByIndex(0);
     DebugPrintFull("temperature: ");
     DebugPrintln(temp);
+    // request the next reading now
+    thermometer.requestTemperatures();
     return temp;
 }
 
