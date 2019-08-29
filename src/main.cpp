@@ -188,7 +188,20 @@ bool handleSetBrightness(const int8_t encoderMovement) {
 
 void displayTime(const uint16_t time) {
     if (time != displayedTime) {
-        clockDisplay.showNumberDecEx(time, 0b01000000);
+        if (time >= 100) {
+            clockDisplay.showNumberDecEx(time, 0b01000000);
+        }
+        else {
+            char displayData[5];
+            sprintf(displayData, "%04d", time);
+            Serial.println(displayData);
+            displayData[0] = 0;
+            displayData[1] = clockDisplay.encodeDigit(displayData[1]) | SEG_DP;
+            displayData[2] = clockDisplay.encodeDigit(displayData[2]);
+            displayData[3] = clockDisplay.encodeDigit(displayData[3]);
+
+            clockDisplay.setSegments((const uint8_t*)displayData);
+        }
         displayedTime = time;
     }
 }
@@ -327,27 +340,29 @@ void stateCountdownAct(const int8_t encoderMovement) {
         displayTime(startTime);
         DebugPrintlnFull(startTime);
     }
-    const uint32_t currentMillis = millis();
-    if(currentMillis - lastCountdownPatternUpdateTime > 50) {
-        if(currentMillis - previousTickTime > 1000) {
-            if(limitTemperature.lowTemperatureTooLow(currentTemperature)) {
-                switchColdOff();
+    else {
+        const uint32_t currentMillis = millis();
+        if(currentMillis - lastCountdownPatternUpdateTime > 50) {
+            if(currentMillis - previousTickTime > 1000) {
+                if(limitTemperature.lowTemperatureTooLow(currentTemperature)) {
+                    switchColdOff();
+                }
+                else if(limitTemperature.lowTemperatureTooHigh(currentTemperature)) {
+                    switchColdOn();
+                }
+                const uint16_t timeLeft = rtcManager.getTimeLeftInCountdown();
+                if (timeLeft != displayedTime) {
+                    displayTime(timeLeft);
+                    DebugPrintFull("Time left: ");
+                    DebugPrintln(timeLeft);
+                    displayedTime = timeLeft;
+                }
+                previousTickTime = currentMillis;
             }
-            else if(limitTemperature.lowTemperatureTooHigh(currentTemperature)) {
-                switchColdOn();
-            }
-            const uint16_t timeLeft = rtcManager.getTimeLeftInCountdown();
-            if (timeLeft != displayedTime) {
-                displayTime(timeLeft);
-                DebugPrintFull("Time left: ");
-                DebugPrintln(timeLeft);
-                displayedTime = timeLeft;
-            }
-            previousTickTime = currentMillis;
-        }
-        showCountdownPattern();
-        lastCountdownPatternUpdateTime = currentMillis;
+            showCountdownPattern();
+            lastCountdownPatternUpdateTime = currentMillis;
 
+        }
     }
 
     if (rtcManager.countdownElapsed()) {
