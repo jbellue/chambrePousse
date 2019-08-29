@@ -30,6 +30,8 @@ DallasTemperature thermometer(&oneWire);
 #define CLOCK_CLK 16
 #define CLOCK_DIO 17
 TM1637Display temperatureDisplay(TEMP_CLK, TEMP_DIO);
+char temperatureDisplayData [4];
+const int8_t temperatureSymbol = SEG_A | SEG_B | SEG_F | SEG_G;
 TM1637Display clockDisplay(CLOCK_CLK, CLOCK_DIO);
 
 // Use pins 2 and 3 because they're the only two with
@@ -62,7 +64,11 @@ RTCManager rtcManager;
 
 uint32_t previousTickTime = 0;
 uint32_t lastBlinkingTime = 0;
+uint32_t lastTemperatureUpdate = 0;
+uint8_t countdownPattern = 0b00001000;
 uint16_t displayedTime = 0;
+int16_t displayedTemperature = 0;
+float currentTemperature = 0;
 
 uint8_t displayBrightness = 7;
 
@@ -72,6 +78,9 @@ void setup() {
     buttonSetTime.begin();
     buttonSetLowTemp.begin();
     buttonSetProofingTemperature.begin();
+
+    clockDisplay.setBrightness(displayBrightness);
+    temperatureDisplay.setBrightness(displayBrightness);
 
     pinMode(LED_BUILTIN, OUTPUT);
     ledCold.init();
@@ -101,30 +110,30 @@ void setup() {
 
 bool handleButtonSetLowTemp(const int8_t encoderMovement) {
     bool hasActed = false;
-    if(buttonSetLowTemp.read() == Button::PRESSED && encoderMovement) {
-        limitTemperature.setLowTemp(encoderMovement);
+    if(buttonSetLowTemp.read() == Button::PRESSED) {
+        if (encoderMovement) {
+            limitTemperature.setLowTemp(encoderMovement);
+        }
         hasActed = true;
+        displayTemperature(limitTemperature.getLowTemp());
     }
     else if (buttonSetLowTemp.released()) {
         limitTemperature.storeLowTemp();
-        hasActed = true;
     }
     return hasActed;
 }
 
 bool handleButtonSetProofingTemperature(const int8_t encoderMovement) {
     bool hasActed = false;
-    if(buttonSetProofingTemperature.read() == Button::PRESSED && encoderMovement) {
-        limitTemperature.setProofingTemperature(encoderMovement);
-        const int8_t temperature = limitTemperature.getProofingTemperature();
-        temperatureDisplay.showNumberDec(temperature);
-        DebugPrintFull("Proofing temperature: ");
-        DebugPrintln(temperature);
+    if(buttonSetProofingTemperature.read() == Button::PRESSED) {
+        if (encoderMovement) {
+            limitTemperature.setProofingTemperature(encoderMovement);
+        }
         hasActed = true;
+        displayTemperature(limitTemperature.getProofingTemperature());
     }
     else if (buttonSetProofingTemperature.released()) {
         limitTemperature.storeProofingTemperature();
-        hasActed = true;
     }
     return hasActed;
 }
@@ -158,8 +167,11 @@ bool handleSetBrightness(const int8_t encoderMovement) {
         // the displays expect values 0-7
         displayBrightness = constrain(displayBrightness + encoderMovement, 0, 7);
         DebugPrintlnFull(displayBrightness);
+
         clockDisplay.setBrightness(displayBrightness);
+        displayTime(displayedTime);
         temperatureDisplay.setBrightness(displayBrightness);
+        displayTemperature(displayedTemperature, true);
 
         ledCold.setBrightness(displayBrightness);
         ledHot.setBrightness(displayBrightness);
@@ -172,25 +184,58 @@ bool handleSetBrightness(const int8_t encoderMovement) {
     return hasActed;
 }
 
-void displayTime(const uint16_t time) {
-    const uint8_t dots = 0b01000000;
+void displayTime(const uint16_t time, const uint8_t dots) {
     clockDisplay.showNumberDecEx(time, dots);
+}
+
+void displayTemperature(const float temp, bool forceRefresh) {
+    if (forceRefresh || temp != displayedTemperature) {
+        sprintf(temperatureDisplayData, "%03d", (int)(temp*10));
+
+        // First digit is either '-' or the actual data
+        if (temp < 0) {
+            temperatureDisplayData[0] = SEG_G;
+        }
+        else if (temperatureDisplayData[0] == '0') {
+            temperatureDisplayData[0] = 0;
+        }
+        else {
+            temperatureDisplayData[0] = temperatureDisplay.encodeDigit(temperatureDisplayData[0]);
+        }
+        temperatureDisplayData[1] = temperatureDisplay.encodeDigit(temperatureDisplayData[1]) | SEG_DP;
+        temperatureDisplayData[2] = temperatureDisplay.encodeDigit(temperatureDisplayData[2]);
+        temperatureDisplayData[3] = temperatureSymbol;
+        temperatureDisplay.setSegments((const uint8_t*)temperatureDisplayData);
+        displayedTemperature = temp;
+    }
 }
 
 void loop() {
     const int8_t encoderMovement = encoder.getRelativeMovement();
     bool encoderValueUsed = handleSetBrightness(encoderMovement);
-    if (!encoderValueUsed) {
-        handleButtonSetLowTemp(encoderMovement);
-    }
+    bool temperatureIsBeingSet = false;
     if (!encoderValueUsed) {
         encoderValueUsed = handleButtonSetProofingTemperature(encoderMovement);
+        temperatureIsBeingSet |= encoderValueUsed;
+    }
+    if (!encoderValueUsed) {
+        encoderValueUsed = handleButtonSetLowTemp(encoderMovement);
+        temperatureIsBeingSet |= encoderValueUsed;
     }
     if (!encoderValueUsed) {
         encoderValueUsed = handleButtonSetTime(encoderMovement);
     }
     if (!encoderValueUsed) {
         stateMachineReact(encoderMovement);
+    }
+    if (!temperatureIsBeingSet) {
+        // display the temperature every second
+        const uint32_t currentMillis = millis();
+        if(currentMillis - lastTemperatureUpdate > 1000) {
+            currentTemperature = getTemperature();
+            displayTemperature(currentTemperature);
+            lastTemperatureUpdate = currentMillis;
+        }
     }
 }
 
@@ -202,13 +247,17 @@ float getTemperature() {
     return temp;
 }
 
+uint8_t rotateBits(const uint8_t n) {
+  return ((n & 1) << 3) | (n >> 1);
+}
+
 void blinkCountdownLED() {
     const uint32_t currentMillis = millis();
  
     if(currentMillis - lastBlinkingTime > 250) {
-        lastBlinkingTime = currentMillis;   
-
-        digitalWrite(LED_BUILTIN, !digitalRead(LED_BUILTIN));
+        countdownPattern = rotateBits(countdownPattern);
+        displayTime(displayedTime, countdownPattern);
+        lastBlinkingTime = currentMillis;
     }
 }
 
@@ -286,11 +335,11 @@ void stateCountdownAct(const int8_t encoderMovement) {
         rtcManager.setStartTime(encoder.getAcceleratedRelativeMovement(encoderMovement));
         const uint16_t startTime = rtcManager.getStartTime();
         displayTime(startTime);
+        displayedTime = startTime;
         DebugPrintlnFull(startTime);
     }
     const uint32_t currentMillis = millis();
     if(currentMillis - previousTickTime > 1000) {
-        const float currentTemperature = getTemperature();
         if(limitTemperature.lowTemperatureTooLow(currentTemperature)) {
             switchColdOff();
         }
@@ -324,7 +373,6 @@ void stateProofingAct(int8_t encoderMovement) {
             DebugPrintln(timeProofing);
             displayedTime = timeProofing;
         }
-        const float currentTemperature = getTemperature();
         if(limitTemperature.proofingTemperatureTooLow(currentTemperature)) {
             switchHotOn();
         }
