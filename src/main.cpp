@@ -30,8 +30,7 @@ DallasTemperature thermometer(&oneWire);
 #define CLOCK_CLK 16
 #define CLOCK_DIO 17
 TM1637Display temperatureDisplay(TEMP_CLK, TEMP_DIO);
-char temperatureDisplayData [4];
-const int8_t temperatureSymbol = SEG_A | SEG_B | SEG_F | SEG_G;
+const uint8_t temperatureSymbol = SEG_A | SEG_B | SEG_F | SEG_G;
 TM1637Display clockDisplay(CLOCK_CLK, CLOCK_DIO);
 
 // Use pins 2 and 3 because they're the only two with
@@ -69,6 +68,7 @@ uint8_t countdownPattern = 0b00001000;
 uint16_t displayedTime = 0;
 int16_t displayedTemperature = 0;
 float currentTemperature = 0;
+bool displayIsShowingDecimals = true;
 
 uint8_t displayBrightness = 7;
 
@@ -115,7 +115,7 @@ bool handleButtonSetLowTemp(const int8_t encoderMovement) {
             limitTemperature.setLowTemp(encoderMovement);
         }
         hasActed = true;
-        displayTemperature(limitTemperature.getLowTemp());
+        displayTemperature(limitTemperature.getLowTemp(), false, false);
     }
     else if (buttonSetLowTemp.released()) {
         limitTemperature.storeLowTemp();
@@ -130,7 +130,7 @@ bool handleButtonSetProofingTemperature(const int8_t encoderMovement) {
             limitTemperature.setProofingTemperature(encoderMovement);
         }
         hasActed = true;
-        displayTemperature(limitTemperature.getProofingTemperature());
+        displayTemperature(limitTemperature.getProofingTemperature(), false, false);
     }
     else if (buttonSetProofingTemperature.released()) {
         limitTemperature.storeProofingTemperature();
@@ -188,25 +188,20 @@ void displayTime(const uint16_t time, const uint8_t dots) {
     clockDisplay.showNumberDecEx(time, dots);
 }
 
-void displayTemperature(const float temp, bool forceRefresh) {
-    if (forceRefresh || temp != displayedTemperature) {
-        sprintf(temperatureDisplayData, "%03d", (int)(temp*10));
-
-        // First digit is either '-' or the actual data
-        if (temp < 0) {
-            temperatureDisplayData[0] = SEG_G;
-        }
-        else if (temperatureDisplayData[0] == '0') {
-            temperatureDisplayData[0] = 0;
+void displayTemperature(const float temp, bool forceRefresh, bool showDecimal) {
+    if (forceRefresh || (int)((temp * 10) + 0.5) != displayedTemperature * 10 || displayIsShowingDecimals != showDecimal) {
+        displayIsShowingDecimals = showDecimal;
+        int16_t tempToDisplay;
+        if (showDecimal) {
+            tempToDisplay = temp * 10 + 0.5; //poor man's round
         }
         else {
-            temperatureDisplayData[0] = temperatureDisplay.encodeDigit(temperatureDisplayData[0]);
+            tempToDisplay = temp;
         }
-        temperatureDisplayData[1] = temperatureDisplay.encodeDigit(temperatureDisplayData[1]) | SEG_DP;
-        temperatureDisplayData[2] = temperatureDisplay.encodeDigit(temperatureDisplayData[2]);
-        temperatureDisplayData[3] = temperatureSymbol;
-        temperatureDisplay.setSegments((const uint8_t*)temperatureDisplayData);
-        displayedTemperature = temp;
+        temperatureDisplay.showNumberDecEx(tempToDisplay, showDecimal ? 0b01000000:0, false, 3, 0);
+        temperatureDisplay.setSegments(&temperatureSymbol, 1, 3);
+
+        displayedTemperature = tempToDisplay;
     }
 }
 
