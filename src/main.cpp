@@ -184,8 +184,8 @@ bool handleSetBrightness(const int8_t encoderMovement) {
     return hasActed;
 }
 
-void displayTime(const uint16_t time, const uint8_t dots) {
-    clockDisplay.showNumberDecEx(time, dots);
+void displayTime(const uint16_t time) {
+    clockDisplay.showNumberDecEx(time, 0b01000000);
 }
 
 void displayTemperature(const float temp, bool forceRefresh, bool showDecimal) {
@@ -251,7 +251,7 @@ void blinkCountdownLED() {
  
     if(currentMillis - lastBlinkingTime > 250) {
         countdownPattern = rotateBits(countdownPattern);
-        displayTime(displayedTime, countdownPattern);
+        displayTime(displayedTime);
         lastBlinkingTime = currentMillis;
     }
 }
