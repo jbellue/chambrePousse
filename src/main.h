@@ -5,8 +5,6 @@ void setup();
 
 float getTemperature();
 
-void blinkCountdownLED();
-
 void loop();
 
 void displayTime(const uint16_t time);
