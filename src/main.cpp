@@ -62,9 +62,10 @@ LimitTemperature limitTemperature;
 RTCManager rtcManager;
 
 uint32_t previousTickTime = 0;
-uint32_t lastBlinkingTime = 0;
+uint32_t lastCountdownPatternUpdateTime = 0;
 uint32_t lastTemperatureUpdate = 0;
-uint8_t countdownPattern = 0b00001000;
+uint8_t countdownPattern[] = {SEG_F, SEG_A, SEG_B, SEG_G, SEG_E, SEG_D, SEG_C, SEG_G};
+uint8_t countDownPatternIndex = 0;
 uint16_t displayedTime = 0;
 int16_t displayedTemperature = 0;
 float currentTemperature = 0;
@@ -247,18 +248,9 @@ float getTemperature() {
     return temp;
 }
 
-uint8_t rotateBits(const uint8_t n) {
-  return ((n & 1) << 3) | (n >> 1);
-}
-
-void blinkCountdownLED() {
-    const uint32_t currentMillis = millis();
- 
-    if(currentMillis - lastBlinkingTime > 250) {
-        countdownPattern = rotateBits(countdownPattern);
-        displayTime(displayedTime);
-        lastBlinkingTime = currentMillis;
-    }
+void showCountdownPattern() {
+    clockDisplay.setSegments(&countdownPattern[countDownPatternIndex], 1);
+    countDownPatternIndex = (countDownPatternIndex + 1) & 7;
 }
 
 void switchColdOn() {
@@ -329,7 +321,6 @@ void stateTimeUnsetAct(const int8_t encoderMovement){
 }
 
 void stateCountdownAct(const int8_t encoderMovement) {
-    blinkCountdownLED();
     if(encoderMovement) {
         rtcManager.setStartTime(encoder.getAcceleratedRelativeMovement(encoderMovement));
         const uint16_t startTime = rtcManager.getStartTime();
@@ -337,21 +328,28 @@ void stateCountdownAct(const int8_t encoderMovement) {
         DebugPrintlnFull(startTime);
     }
     const uint32_t currentMillis = millis();
-    if(currentMillis - previousTickTime > 1000) {
-        if(limitTemperature.lowTemperatureTooLow(currentTemperature)) {
-            switchColdOff();
+    if(currentMillis - lastCountdownPatternUpdateTime > 50) {
+        if(currentMillis - previousTickTime > 1000) {
+            if(limitTemperature.lowTemperatureTooLow(currentTemperature)) {
+                switchColdOff();
+            }
+            else if(limitTemperature.lowTemperatureTooHigh(currentTemperature)) {
+                switchColdOn();
+            }
+            const uint16_t timeLeft = rtcManager.getTimeLeftInCountdown();
+            if (timeLeft != displayedTime) {
+                displayTime(timeLeft);
+                DebugPrintFull("Time left: ");
+                DebugPrintln(timeLeft);
+                displayedTime = timeLeft;
+            }
+            previousTickTime = currentMillis;
         }
-        else if(limitTemperature.lowTemperatureTooHigh(currentTemperature)) {
-            switchColdOn();
-        }
-        const uint16_t timeLeft = rtcManager.getTimeLeftInCountdown();
-        if (timeLeft != displayedTime) {
-            displayTime(timeLeft);
-            DebugPrintFull("Time left: ");
-            DebugPrintln(timeLeft);
-        }
-        previousTickTime = currentMillis;
+        showCountdownPattern();
+        lastCountdownPatternUpdateTime = currentMillis;
+
     }
+
     if (rtcManager.countdownElapsed()) {
         changeState(STATE_PROOFING);
     }
