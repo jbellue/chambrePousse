@@ -253,8 +253,7 @@ void loop() {
 
 float getTemperature() {
     const float temp = thermometer.getTempCByIndex(0);
-    DebugPrintFull("temperature: ");
-    DebugPrintln(temp);
+
     // request the next reading now
     thermometer.requestTemperatures();
     return temp;
