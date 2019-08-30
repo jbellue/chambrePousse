@@ -85,7 +85,6 @@ void setup() {
     clockDisplay.setBrightness(displayBrightness);
     temperatureDisplay.setBrightness(displayBrightness);
 
-    pinMode(LED_BUILTIN, OUTPUT);
     ledCold.init();
     ledHot.init();
     ledProofing.init();
@@ -397,7 +396,6 @@ void stateProofingAct(int8_t encoderMovement) {
 }
 
 void stateProofingInit() {
-    digitalWrite(LED_BUILTIN, LOW);
     ledCold.off();
     ledProofing.on();
 }
