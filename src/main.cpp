@@ -118,7 +118,7 @@ bool handleButtonSetLowTemp(const int8_t encoderMovement) {
             limitTemperature.setLowTemp(encoderMovement);
         }
         hasActed = true;
-        displayTemperature(limitTemperature.getLowTemp(), false, false);
+        displayTemperature(limitTemperature.getLowTemp(), false);
     }
     else if (buttonSetLowTemp.released()) {
         limitTemperature.storeLowTemp();
@@ -133,7 +133,7 @@ bool handleButtonSetProofingTemperature(const int8_t encoderMovement) {
             limitTemperature.setProofingTemperature(encoderMovement);
         }
         hasActed = true;
-        displayTemperature(limitTemperature.getProofingTemperature(), false, false);
+        displayTemperature(limitTemperature.getProofingTemperature(), false);
     }
     else if (buttonSetProofingTemperature.released()) {
         limitTemperature.storeProofingTemperature();
@@ -173,9 +173,7 @@ bool handleSetBrightness(const int8_t encoderMovement) {
             DebugPrintlnFull(displayBrightness);
 
             clockDisplay.setBrightness(displayBrightness);
-            displayTime(displayedTime, true);
             temperatureDisplay.setBrightness(displayBrightness);
-            displayTemperature(displayedTemperature, true);
 
             ledCold.setBrightness(displayBrightness);
             ledHot.setBrightness(displayBrightness);
@@ -185,15 +183,14 @@ bool handleSetBrightness(const int8_t encoderMovement) {
     return hasActed;
 }
 
-void displayTime(const uint16_t time, bool forceRefresh) {
-    if (forceRefresh || time != displayedTime) {
+void displayTime(const uint16_t time) {
+    if (time != displayedTime) {
         if (time >= 100) {
             clockDisplay.showNumberDecEx(time, 0b01000000);
         }
         else {
             char displayData[5];
             sprintf(displayData, "%04d", time);
-            Serial.println(displayData);
             displayData[0] = 0;
             displayData[1] = clockDisplay.encodeDigit(displayData[1]) | SEG_DP;
             displayData[2] = clockDisplay.encodeDigit(displayData[2]);
@@ -205,8 +202,8 @@ void displayTime(const uint16_t time, bool forceRefresh) {
     }
 }
 
-void displayTemperature(const float temp, bool forceRefresh, bool showDecimal) {
-    if (forceRefresh || (int)((temp * 10) + 0.5) != displayedTemperature * 10 || displayIsShowingDecimals != showDecimal) {
+void displayTemperature(const float temp, bool showDecimal) {
+    if ((int)((temp * 10) + 0.5) != displayedTemperature * 10 || displayIsShowingDecimals != showDecimal) {
         displayIsShowingDecimals = showDecimal;
         int16_t tempToDisplay;
         if (showDecimal) {
