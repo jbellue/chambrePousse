@@ -165,30 +165,28 @@ bool handleButtonSetTime(const int8_t encoderMovement) {
 bool handleSetBrightness(const int8_t encoderMovement) {
     bool hasActed = false;
     if(buttonSetProofingTemperature.read() == Button::PRESSED
-        && buttonSetLowTemp.read() == Button::PRESSED
-        && encoderMovement) {
-        // the displays expect values 0-7
-        displayBrightness = constrain(displayBrightness + encoderMovement, 0, 7);
-        DebugPrintlnFull(displayBrightness);
-
-        clockDisplay.setBrightness(displayBrightness);
-        displayTime(displayedTime);
-        temperatureDisplay.setBrightness(displayBrightness);
-        displayTemperature(displayedTemperature, true);
-
-        ledCold.setBrightness(displayBrightness);
-        ledHot.setBrightness(displayBrightness);
-        ledProofing.setBrightness(displayBrightness);
+        && buttonSetLowTemp.read() == Button::PRESSED) {
         hasActed = true;
-    }
-    else if (buttonSetProofingTemperature.released() && buttonSetLowTemp.released()) {
-        hasActed = true;
+        if(encoderMovement) {
+            // the displays expect values 0-7
+            displayBrightness = constrain(displayBrightness + encoderMovement, 0, 7);
+            DebugPrintlnFull(displayBrightness);
+
+            clockDisplay.setBrightness(displayBrightness);
+            displayTime(displayedTime, true);
+            temperatureDisplay.setBrightness(displayBrightness);
+            displayTemperature(displayedTemperature, true);
+
+            ledCold.setBrightness(displayBrightness);
+            ledHot.setBrightness(displayBrightness);
+            ledProofing.setBrightness(displayBrightness);
+        }
     }
     return hasActed;
 }
 
-void displayTime(const uint16_t time) {
-    if (time != displayedTime) {
+void displayTime(const uint16_t time, bool forceRefresh) {
+    if (forceRefresh || time != displayedTime) {
         if (time >= 100) {
             clockDisplay.showNumberDecEx(time, 0b01000000);
         }
