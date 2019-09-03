@@ -38,19 +38,20 @@ TM1637Display clockDisplay(CLOCK_CLK, CLOCK_DIO);
 #define ENCODER_PIN_A 2
 #define ENCODER_PIN_B 3
 SimplifiedEncoder encoder(ENCODER_PIN_A, ENCODER_PIN_B);
-
 #define PIN_BTN_ENCODER 4
-#define PIN_BTN_SET_TIME 5
-#define PIN_BTN_SET_LOW_TEMP 6
-#define PIN_BTN_SET_HIGH_TEMP 7
 
-// Need to tweak the resistor values for the LEDs when I
-// actually get them to get consistent brightness
-#define PIN_LED_PROOFING 9
+#define PIN_BTN_SET_TIME 6
+#define PIN_LED_PROOFING 7
+
+#define PIN_LED_COLD 8
+#define PIN_BTN_SET_LOW_TEMP 9
+
+#define PIN_LED_HOT 10
+#define PIN_BTN_SET_HIGH_TEMP 11
+
+
 LED ledProofing(PIN_LED_PROOFING);
-#define PIN_LED_COLD 10
 LED ledCold(PIN_LED_COLD);
-#define PIN_LED_HOT 11
 LED ledHot(PIN_LED_HOT);
 
 Button buttonEncoder(PIN_BTN_ENCODER);
