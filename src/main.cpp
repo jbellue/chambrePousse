@@ -297,14 +297,7 @@ void stateWaitingAct(const int8_t encoderMovement) {
     }
     const uint32_t currentMillis = millis();
     if(currentMillis - lastManualTimeChange > TIME_BEFORE_MANUAL_TIMESET_UPDATE && currentMillis - previousTickTime > 2000) {
-        const uint16_t rtcTime = rtcManager.getRTCTime();
-        if (rtcTime != displayedTime) {
-            displayTime(rtcTime);
-            DebugPrintFull(rtcTime);
-            DebugPrint(": ");
-            printStateToSerial();
-            DebugPrintln("");
-        }
+        displayTime(rtcManager.getRTCTime());
         previousTickTime = currentMillis;
     }
 }
@@ -348,13 +341,7 @@ void stateCountdownAct(const int8_t encoderMovement) {
                 else if(limitTemperature.lowTemperatureTooHigh(currentTemperature)) {
                     switchColdOn();
                 }
-                const uint16_t timeLeft = rtcManager.getTimeLeftInCountdown();
-                if (timeLeft != displayedTime) {
-                    displayTime(timeLeft);
-                    DebugPrintFull("Time left: ");
-                    DebugPrintln(timeLeft);
-                    displayedTime = timeLeft;
-                }
+                displayTime(rtcManager.getTimeLeftInCountdown());
                 previousTickTime = currentMillis;
             }
             showCountdownPattern();
@@ -374,12 +361,7 @@ void stateProofingAct(int8_t encoderMovement) {
 
     const uint32_t currentMillis = millis();
     if(currentMillis - previousTickTime > 1000) {
-        const uint16_t timeProofing = rtcManager.getTimeProofing();
-        if (timeProofing != displayedTime) {
-            displayTime(timeProofing);
-            DebugPrintFull("Time proofing: ");
-            DebugPrintln(timeProofing);
-        }
+        displayTime(rtcManager.getTimeProofing());
         if(limitTemperature.proofingTemperatureTooLow(currentTemperature)) {
             switchHotOn();
         }
