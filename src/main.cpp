@@ -32,6 +32,7 @@ DallasTemperature thermometer(&oneWire);
 TM1637Display temperatureDisplay(TEMP_CLK, TEMP_DIO);
 const uint8_t temperatureSymbol = SEG_A | SEG_B | SEG_F | SEG_G;
 TM1637Display clockDisplay(CLOCK_CLK, CLOCK_DIO);
+uint8_t dotsPattern = 0b01000000;
 
 // Use pins 2 and 3 because they're the only two with
 // interrupt on the nano
@@ -187,7 +188,7 @@ bool handleSetBrightness(const int8_t encoderMovement) {
 void displayTime(const uint16_t time, bool forceRefresh) {
     if (forceRefresh || time != displayedTime) {
         if (time >= 100) {
-            clockDisplay.showNumberDecEx(time, 0b01000000);
+            clockDisplay.showNumberDecEx(time, dotsPattern);
         }
         else {
             char displayData[5];
@@ -317,21 +318,20 @@ void stateTimeUnsetInit() {
     rtcManager.initSetTime();
 }
 void stateTimeUnsetAct(const int8_t encoderMovement){
-    // TODO blink the display?
-    // Just blink all the dots ?
-    // Decide.
+    runIfNewState(stateTimeUnsetInit);
+    const uint32_t currentMillis = millis();
+    if(currentMillis - previousTickTime > 100) {
+        dotsPattern ^= 0b01000000;
+        previousTickTime = currentMillis;
+    }
     if(encoderMovement) {
-        runIfNewState(stateTimeUnsetInit);
         rtcManager.setTime(encoder.getAcceleratedRelativeMovement(encoderMovement));
-        const uint16_t tempTime = rtcManager.getTempTime();
-        displayTime(tempTime);
-        DebugPrintlnFull(tempTime);
     }
     else if (buttonEncoder.pressed()) {
-        runIfNewState(stateTimeUnsetInit);
         rtcManager.finishTimeSet();
         changeState(STATE_WAITING);
     }
+    displayTime(rtcManager.getTempTime(), true);
 }
 
 void stateCountdownAct(const int8_t encoderMovement) {

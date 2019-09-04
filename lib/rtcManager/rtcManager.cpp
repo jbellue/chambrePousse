@@ -69,9 +69,8 @@ void RTCManager::setStartTime(const int8_t diff) {
     _startTime = _startTime + TimeSpan(diff * 60);
 }
 
-
 void RTCManager::finishTimeSet() {
-    // rtc.adjust(DateTime(2014, 1, 21, newTimeHours, newTimeMinutes, 0));
+    _rtc.adjust(DateTime(2019, 9, 4, _newTimeHours, _newTimeMinutes, 0));
 }
 
 void RTCManager::finishStartTimeSet() {
