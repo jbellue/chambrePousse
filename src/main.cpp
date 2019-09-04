@@ -184,8 +184,8 @@ bool handleSetBrightness(const int8_t encoderMovement) {
     return hasActed;
 }
 
-void displayTime(const uint16_t time) {
-    if (time != displayedTime) {
+void displayTime(const uint16_t time, bool forceRefresh) {
+    if (forceRefresh || time != displayedTime) {
         if (time >= 100) {
             clockDisplay.showNumberDecEx(time, 0b01000000);
         }
@@ -259,6 +259,8 @@ float getTemperature() {
 
 void showCountdownPattern() {
     clockDisplay.setSegments(&countdownPattern[countDownPatternIndex], 1, displayedTime > 959 ? 3 : 0);
+
+    // cycle the countDownPatternIndex over the countdownPattern array
     countDownPatternIndex = (countDownPatternIndex + 1) & (sizeof(countdownPattern) / sizeof(countdownPattern[0]) - 1);
 }
 
@@ -281,6 +283,7 @@ void stateWaitingInit() {
 }
 
 void stateWaitingAct(const int8_t encoderMovement) {
+    const uint32_t currentMillis = millis();
     if(encoderMovement) {
         runIfNewState(stateWaitingInit);
         rtcManager.setStartTime(encoder.getAcceleratedRelativeMovement(encoderMovement));
@@ -290,15 +293,23 @@ void stateWaitingAct(const int8_t encoderMovement) {
         DebugPrintFull("New start time ");
         DebugPrintln(newStartTime);
     }
+    else if(currentMillis - lastManualTimeChange > TIME_BEFORE_MANUAL_TIMESET_UPDATE && currentMillis - previousTickTime > 2000) {
+        displayTime(rtcManager.getRTCTime());
+        previousTickTime = currentMillis;
+    }
     else if (buttonEncoder.pressed()) {
         runIfNewState(stateWaitingInit);
         rtcManager.finishStartTimeSet();
-        changeState(STATE_COUNTDOWN);
-    }
-    const uint32_t currentMillis = millis();
-    if(currentMillis - lastManualTimeChange > TIME_BEFORE_MANUAL_TIMESET_UPDATE && currentMillis - previousTickTime > 2000) {
-        displayTime(rtcManager.getRTCTime());
-        previousTickTime = currentMillis;
+
+        // ignore thecountdown state if the timer is already elapsed
+        if (rtcManager.countdownElapsed()) {
+            changeState(STATE_PROOFING);
+        }
+        else {
+            changeState(STATE_COUNTDOWN);
+        }
+        previousTickTime = 0;
+        lastManualTimeChange = 0;
     }
 }
 
@@ -375,4 +386,7 @@ void stateProofingAct(int8_t encoderMovement) {
 void stateProofingInit() {
     ledCold.off();
     ledProofing.on();
+
+    // force the refresh of the display to remove countdown artefacts
+    displayTime(rtcManager.getTimeProofing(), true);
 }

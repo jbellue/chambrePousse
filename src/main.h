@@ -7,7 +7,7 @@ float getTemperature();
 
 void loop();
 
-void displayTime(const uint16_t time);
+void displayTime(const uint16_t time, bool forceRefresh = false);
 void displayTemperature(const float temp, bool showDecimal = true);
 
 #endif
