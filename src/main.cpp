@@ -32,7 +32,9 @@ DallasTemperature thermometer(&oneWire);
 TM1637Display temperatureDisplay(TEMP_CLK, TEMP_DIO);
 const uint8_t temperatureSymbol = SEG_A | SEG_B | SEG_F | SEG_G;
 TM1637Display clockDisplay(CLOCK_CLK, CLOCK_DIO);
-uint8_t dotsPattern = 0b01000000;
+
+#define DOTS_PATTERN 0b01000000
+uint8_t dotsPattern = DOTS_PATTERN;
 
 // Use pins 2 and 3 because they're the only two with
 // interrupt on the nano
@@ -214,7 +216,7 @@ void displayTemperature(const float temp, bool showDecimal) {
         else {
             tempToDisplay = temp;
         }
-        temperatureDisplay.showNumberDecEx(tempToDisplay, showDecimal ? 0b01000000:0, false, 3, 0);
+        temperatureDisplay.showNumberDecEx(tempToDisplay, showDecimal ? DOTS_PATTERN:0, false, 3, 0);
         temperatureDisplay.setSegments(&temperatureSymbol, 1, 3);
 
         displayedTemperature = tempToDisplay;
@@ -321,7 +323,7 @@ void stateTimeUnsetAct(const int8_t encoderMovement){
     runIfNewState(stateTimeUnsetInit);
     const uint32_t currentMillis = millis();
     if(currentMillis - previousTickTime > 100) {
-        dotsPattern ^= 0b01000000;
+        dotsPattern ^= DOTS_PATTERN;
         previousTickTime = currentMillis;
     }
     if(encoderMovement) {
