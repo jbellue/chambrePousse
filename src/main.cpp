@@ -194,7 +194,7 @@ void displayTime(const uint16_t time, bool forceRefresh) {
         }
         else {
             char displayData[5];
-            sprintf(displayData, "%04d", time);
+            sprintf(displayData, "%04u", time);
             displayData[0] = 0;
             displayData[1] = clockDisplay.encodeDigit(displayData[1]) | SEG_DP;
             displayData[2] = clockDisplay.encodeDigit(displayData[2]);

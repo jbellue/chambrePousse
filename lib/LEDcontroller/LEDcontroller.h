@@ -6,7 +6,7 @@
 class LED {
     public:
         LED(const uint8_t pin, const uint8_t brightness = 255):
-            _pin(pin), _brightness(brightness) {};
+            _pin(pin), _brightness(brightness), _on(false) {};
         void init();
         void on();
         void off();
