@@ -13,6 +13,7 @@
 
 class LimitTemperature {
     public:
+        LimitTemperature();
         void init();
         void setProofingTemperature(const int8_t difference);
         int8_t getProofingTemperature();

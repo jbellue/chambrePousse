@@ -1,6 +1,9 @@
 #include <limitTemperature.h>
 #include <EEPROM.h>
 
+LimitTemperature::LimitTemperature(): _lowTemp(0),
+                                      _proofingTemperature(0) {}
+
 void LimitTemperature::init() {
     _lowTemp = EEPROM.read(EEPROM_LOW_TEMP_ADDRESS);
     if ((uint8_t)_lowTemp == 255) {
