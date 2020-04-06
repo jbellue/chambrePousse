@@ -10,7 +10,6 @@ class LED {
         void init();
         void on();
         void off();
-        void toggle();
         void setBrightness(const uint8_t b);
 
     private:

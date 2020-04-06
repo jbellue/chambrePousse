@@ -13,10 +13,6 @@ void LED::off() {
     _on = false;
     analogWrite(_pin, 0);
 }
-void LED::toggle() {
-    _on = !_on;
-    analogWrite(_pin, _on?_brightness : 0);
-}
 
 void LED::setBrightness(const uint8_t b) {
     if (b < 8) {
