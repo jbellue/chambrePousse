@@ -70,7 +70,7 @@ uint32_t lastCountdownPatternUpdateTime = 0;
 #define TIME_BEFORE_MANUAL_TIMESET_UPDATE 1500
 uint32_t lastManualTimeChange = 0;
 uint32_t lastTemperatureUpdate = 0;
-uint8_t countdownPattern[] = {SEG_F, SEG_A, SEG_B, SEG_G, SEG_E, SEG_D, SEG_C, SEG_G};
+const uint8_t countdownPattern[] = {SEG_F, SEG_A, SEG_B, SEG_G, SEG_E, SEG_D, SEG_C, SEG_G};
 uint8_t countDownPatternIndex = 0;
 uint16_t displayedTime = 0;
 int16_t displayedTemperature = 0;
@@ -117,6 +117,13 @@ void setup() {
     }
 }
 
+/*
+ * If the button is being pressed, update the low temp according to encoderMovement
+ * (and update the displayed temperature)
+ * Else if the button is released, store the low temp
+ * 
+ * returns true if the encoderMovement value has been used
+ */
 bool handleButtonSetLowTemp(const int8_t encoderMovement) {
     bool hasActed = false;
     if(buttonSetLowTemp.read() == Button::PRESSED) {
@@ -132,6 +139,13 @@ bool handleButtonSetLowTemp(const int8_t encoderMovement) {
     return hasActed;
 }
 
+/*
+ * If the button is being pressed, update the high temp according to encoderMovement
+ * (and update the displayed temperature)
+ * Else if the button is released, store the high temp 
+ * 
+ * returns true if the encoderMovement value has been used
+ */
 bool handleButtonSetProofingTemperature(const int8_t encoderMovement) {
     bool hasActed = false;
     if(buttonSetProofingTemperature.read() == Button::PRESSED) {
@@ -147,6 +161,14 @@ bool handleButtonSetProofingTemperature(const int8_t encoderMovement) {
     return hasActed;
 }
 
+/*
+ * If the button has just been pressed, initialise the rtc time set
+ * Else, if the button is pressed, update the rtc time to the accelerated encoderMovement
+ * Else, if the button has just been released, store the rtc time
+ * Else if the button is released, store the high temp 
+ * 
+ * returns true if the encoderMovement value has been used
+ */
 bool handleButtonSetTime(const int8_t encoderMovement) {
     bool hasActed = false;
     if(buttonSetTime.pressed()) {
@@ -168,14 +190,18 @@ bool handleButtonSetTime(const int8_t encoderMovement) {
     return hasActed;
 }
 
+/*
+ * If both temperature buttons are being pressed, set the display of the clocks and led
+ * 
+ * returns true if the encoderMovement value has been used
+ */
 bool handleSetBrightness(const int8_t encoderMovement) {
     bool hasActed = false;
-    if(buttonSetProofingTemperature.read() == Button::PRESSED
-        && buttonSetLowTemp.read() == Button::PRESSED) {
+    if(buttonSetProofingTemperature.read() == Button::PRESSED && buttonSetLowTemp.read() == Button::PRESSED) {
         hasActed = true;
         if(encoderMovement) {
             // the displays expect values 0-7
-            displayBrightness = constrain(displayBrightness + encoderMovement, 0, 7);
+            displayBrightness = constrain((int8_t)displayBrightness + encoderMovement, 0, 7);
             DebugPrintlnFull(displayBrightness);
 
             clockDisplay.setBrightness(displayBrightness);
@@ -368,7 +394,7 @@ void stateCountdownAct(const int8_t encoderMovement) {
     if (rtcManager.countdownElapsed()) {
         stateMachine.changeState(StateMachine::STATE_PROOFING);
     }
-    }
+}
 
 void stateProofingInit() {
     ledCold.off();
@@ -394,5 +420,3 @@ void stateProofingAct(int8_t encoderMovement) {
         previousTickTime = currentMillis;
     }
 }
-
-
