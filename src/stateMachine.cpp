@@ -1,28 +1,17 @@
 #include <stateMachine.h>
 #include <debug_macros.h>
 
-bool stateHasChanged = false;
-State_t state = STATE_STARTUP;
-
-StateMachine_t stateMachine[] = {
-    {STATE_STARTUP,    NULL},
-    {STATE_WAITING,    stateWaitingAct},
-    {STATE_TIME_UNSET, stateTimeUnsetAct},
-    {STATE_COUNTDOWN,  stateCountdownAct},
-    {STATE_PROOFING,   stateProofingAct}
-};
-
-void runIfNewState(void(*functionToRun)()) {
-    if (stateHasChanged) {
+void StateMachine::runIfNewState(void(*functionToRun)()) {
+    if (_stateHasChanged) {
         if(functionToRun) {
             (*functionToRun)();
         }
-        stateHasChanged = false;
+        _stateHasChanged = false;
     }
 }
 
-void printStateToSerial() {
-    switch(state) {
+void StateMachine::printStateToSerial() {
+    switch(_state) {
         case STATE_STARTUP:
             DebugPrint("STARTUP");
             break;
@@ -43,18 +32,18 @@ void printStateToSerial() {
     }
 }
 
-void changeState(State_t newState) {
-    if (newState < State_t::NUM_STATE && newState != state) {
+void StateMachine::changeState(State_t newState) {
+    if (newState < State_t::NUM_STATE && newState != _state) {
         DebugPrintFull("Going from state ");
         printStateToSerial();
-        state = newState;
-        stateHasChanged = true;
+        _state = newState;
+        _stateHasChanged = true;
         DebugPrint(" to state ");
         printStateToSerial();
         DebugPrintln("");
     }
 }
 
-void stateMachineReact(const int8_t encoderMovement) {
-    (*stateMachine[state].act)(encoderMovement);
+void StateMachine::stateMachineReact(const int8_t encoderMovement) {
+    (*_stateMachine[_state].act)(encoderMovement);
 }

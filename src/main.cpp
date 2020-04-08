@@ -79,6 +79,8 @@ bool displayIsShowingDecimals = true;
 
 uint8_t displayBrightness = 7;
 
+StateMachine stateMachine;
+
 void setup() {
     DebugPrintBegin(115200);
     buttonEncoder.begin();
@@ -101,10 +103,10 @@ void setup() {
 
     switch(rtcManager.init()) {
         case RTCManager::initReturn_t::success:
-            changeState(STATE_WAITING);
+            stateMachine.changeState(StateMachine::STATE_WAITING);
             break;
         case RTCManager::initReturn_t::lostPower:
-            changeState(STATE_TIME_UNSET);
+            stateMachine.changeState(StateMachine::STATE_TIME_UNSET);
             break;
         case RTCManager::initReturn_t::notFound:
             DebugPrintlnFull("Couldn't find RTC module.");
@@ -239,7 +241,7 @@ void loop() {
         encoderValueUsed = handleButtonSetTime(encoderMovement);
     }
     if (!encoderValueUsed) {
-        stateMachineReact(encoderMovement);
+        stateMachine.stateMachineReact(encoderMovement);
     }
     if (!temperatureIsBeingSet) {
         // display the temperature every second
@@ -288,7 +290,7 @@ void stateWaitingInit() {
 void stateWaitingAct(const int8_t encoderMovement) {
     const uint32_t currentMillis = millis();
     if(encoderMovement) {
-        runIfNewState(stateWaitingInit);
+        stateMachine.runIfNewState(stateWaitingInit);
         rtcManager.setStartTime(encoder.getAcceleratedRelativeMovement(encoderMovement));
         const uint16_t newStartTime = rtcManager.getStartTime();
         displayTime(newStartTime);
@@ -301,15 +303,15 @@ void stateWaitingAct(const int8_t encoderMovement) {
         previousTickTime = currentMillis;
     }
     else if (buttonEncoder.pressed()) {
-        runIfNewState(stateWaitingInit);
+        stateMachine.runIfNewState(stateWaitingInit);
         rtcManager.finishStartTimeSet();
 
         // ignore thecountdown state if the timer is already elapsed
         if (rtcManager.countdownElapsed()) {
-            changeState(STATE_PROOFING);
+            stateMachine.changeState(StateMachine::STATE_PROOFING);
         }
         else {
-            changeState(STATE_COUNTDOWN);
+            stateMachine.changeState(StateMachine::STATE_COUNTDOWN);
         }
         previousTickTime = 0;
         lastManualTimeChange = 0;
@@ -320,7 +322,7 @@ void stateTimeUnsetInit() {
     rtcManager.initSetTime();
 }
 void stateTimeUnsetAct(const int8_t encoderMovement){
-    runIfNewState(stateTimeUnsetInit);
+    stateMachine.runIfNewState(stateTimeUnsetInit);
     const uint32_t currentMillis = millis();
     if(currentMillis - previousTickTime > 100) {
         dotsPattern ^= DOTS_PATTERN;
@@ -331,7 +333,7 @@ void stateTimeUnsetAct(const int8_t encoderMovement){
     }
     else if (buttonEncoder.pressed()) {
         rtcManager.finishTimeSet();
-        changeState(STATE_WAITING);
+        stateMachine.changeState(StateMachine::STATE_WAITING);
     }
     displayTime(rtcManager.getTempTime(), true);
 }
@@ -364,13 +366,21 @@ void stateCountdownAct(const int8_t encoderMovement) {
     }
 
     if (rtcManager.countdownElapsed()) {
-        changeState(STATE_PROOFING);
+        stateMachine.changeState(StateMachine::STATE_PROOFING);
     }
+    }
+
+void stateProofingInit() {
+    ledCold.off();
+    ledProofing.on();
+
+    // force the refresh of the display to remove countdown artefacts
+    displayTime(rtcManager.getTimeProofing(), true);
 }
 
 void stateProofingAct(int8_t encoderMovement) {
     (void) encoderMovement; // unused parameter...
-    runIfNewState(stateProofingInit);
+    stateMachine.runIfNewState(stateProofingInit);
 
     const uint32_t currentMillis = millis();
     if(currentMillis - previousTickTime > 1000) {
@@ -385,10 +395,4 @@ void stateProofingAct(int8_t encoderMovement) {
     }
 }
 
-void stateProofingInit() {
-    ledCold.off();
-    ledProofing.on();
 
-    // force the refresh of the display to remove countdown artefacts
-    displayTime(rtcManager.getTimeProofing(), true);
-}
