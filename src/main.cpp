@@ -397,7 +397,8 @@ void stateCountdownAct(const int8_t encoderMovement) {
 }
 
 void stateProofingInit() {
-    ledCold.off();
+    switchColdOff();
+    switchHotOn();
     ledProofing.on();
 
     // force the refresh of the display to remove countdown artefacts
