@@ -48,6 +48,8 @@ SimplifiedEncoder encoder(ENCODER_PIN_A, ENCODER_PIN_B);
 
 #define PIN_LED_COLD 8
 #define PIN_BTN_SET_LOW_TEMP 9
+#define PIN_RELAY_COLD 5
+#define PIN_RELAY_HOT 13
 
 #define PIN_LED_HOT 10
 #define PIN_BTN_SET_HIGH_TEMP 11
@@ -90,6 +92,11 @@ void setup() {
 
     clockDisplay.setBrightness(displayBrightness);
     temperatureDisplay.setBrightness(displayBrightness);
+
+    pinMode(PIN_RELAY_COLD, OUTPUT);
+    digitalWrite(PIN_RELAY_COLD, LOW);
+    pinMode(PIN_RELAY_HOT, OUTPUT);
+    digitalWrite(PIN_RELAY_HOT, LOW);
 
     ledCold.init();
     ledHot.init();
@@ -297,15 +304,19 @@ void showCountdownPattern() {
 
 void switchColdOn() {
     ledCold.on();
+    digitalWrite(PIN_RELAY_COLD, HIGH);
 }
 void switchColdOff() {
     ledCold.off();
+    digitalWrite(PIN_RELAY_COLD, LOW);
 }
 void switchHotOn() {
     ledHot.on();
+    digitalWrite(PIN_RELAY_HOT, HIGH);
 }
 void switchHotOff() {
     ledHot.off();
+    digitalWrite(PIN_RELAY_HOT, LOW);
 }
 
 void stateWaitingInit() {
